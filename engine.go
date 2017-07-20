@@ -1076,7 +1076,6 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		}
 
 		table.AddColumn(col)
-
 	} // end for
 
 	if idFieldColName != "" && len(table.PrimaryKeys) == 0 {

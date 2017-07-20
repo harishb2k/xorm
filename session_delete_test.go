@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"xorm.io/core"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/core"
 )
 
 func TestDelete(t *testing.T) {
@@ -29,7 +29,7 @@ func TestDelete(t *testing.T) {
 	if testEngine.Dialect().DBType() == core.MSSQL {
 		err = session.Begin()
 		assert.NoError(t, err)
-		_, err = session.Exec("SET IDENTITY_INSERT userinfo_delete ON")
+		_, err = session.Exec("SET IDENTITY_INSERT " + testEngine.TableMapper.Obj2Table("UserinfoDelete") + " ON")
 		assert.NoError(t, err)
 	}
 

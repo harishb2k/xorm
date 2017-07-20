@@ -34,7 +34,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 		if engine.dialect.DBType() == core.MSSQL && (col.SQLType.Name == core.Text || col.SQLType.IsBlob() || col.SQLType.Name == core.TimeStampz) {
 			continue
 		}
-		if col.SQLType.IsJson() {
+		if col.IsJSON || col.SQLType.IsJson() {
 			continue
 		}
 
@@ -144,7 +144,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 					continue
 				}
 			} else {
-				if col.SQLType.IsJson() {
+				if col.IsJSON || col.SQLType.IsJson() {
 					if col.SQLType.IsText() {
 						bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
 						if err != nil {

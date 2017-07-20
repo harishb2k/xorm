@@ -484,7 +484,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 		fieldType := fieldValue.Type()
 		hasAssigned := false
 
-		if col.SQLType.IsJson() {
+		if col.IsJSON || col.SQLType.IsJson() {
 			var bs []byte
 			if rawValueType.Kind() == reflect.String {
 				bs = []byte(vv.String())
@@ -664,7 +664,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					session.engine.logger.Error("sql.Sanner error:", err.Error())
 					hasAssigned = false
 				}
-			} else if col.SQLType.IsJson() {
+			} else if col.IsJSON || col.SQLType.IsJson() {
 				if rawValueType.Kind() == reflect.String {
 					hasAssigned = true
 					x := reflect.New(fieldType)
