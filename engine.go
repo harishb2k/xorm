@@ -1232,7 +1232,45 @@ func (engine *Engine) nowTime(col *schemas.Column) (interface{}, time.Time) {
 	if !col.DisableTimeZone && col.TimeZone != nil {
 		tz = col.TimeZone
 	}
-	return dialects.FormatTime(engine.dialect, col.SQLType.Name, t.In(tz)), t.In(engine.TZLocation)
+	return engine.formatTime(col.SQLType.Name, t.In(tz)), t.In(engine.TZLocation)
+}
+
+func (engine *Engine) formatColTime(col *schemas.Column, t time.Time) (v interface{}) {
+	if t.IsZero() {
+		if col.Nullable || !col.DefaultIsEmpty {
+			return nil
+		}
+		return ""
+	}
+
+	if col.TimeZone != nil {
+		return engine.formatTime(col.SQLType.Name, t.In(col.TimeZone))
+	}
+	return engine.formatTime(col.SQLType.Name, t.In(engine.DatabaseTZ))
+}
+
+// formatTime format time as column type
+func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}) {
+	switch sqlTypeName {
+	case schemas.Time:
+		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
+		v = s[11:19]
+	case schemas.Date:
+		v = t.Format("2006-01-02")
+	case schemas.DateTime, schemas.TimeStamp:
+		v = t.Format("2006-01-02 15:04:05")
+	case schemas.TimeStampz:
+		if engine.dialect.URI().DBType == schemas.MSSQL {
+			v = t.Format("2006-01-02T15:04:05.9999999Z07:00")
+		} else {
+			v = t.Format(time.RFC3339Nano)
+		}
+	case schemas.BigInt, schemas.Int:
+		v = t.Unix()
+	default:
+		v = t
+	}
+	return
 }
 
 // GetColumnMapper returns the column name mapper
