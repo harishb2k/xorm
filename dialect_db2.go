@@ -34,28 +34,12 @@ func (db *db2) SqlType(c *core.Column) string {
 	case core.Bit:
 		res = core.Boolean
 		return res
-	case core.MediumInt, core.Int, core.Integer:
-		if c.IsAutoIncrement {
-			return core.Serial
-		}
-		return core.Integer
-	case core.BigInt:
-		if c.IsAutoIncrement {
-			return core.BigSerial
-		}
-		return core.BigInt
-	case core.Serial, core.BigSerial:
-		c.IsAutoIncrement = true
-		c.Nullable = false
-		res = t
 	case core.Binary, core.VarBinary:
 		return core.Bytea
 	case core.DateTime:
 		res = core.TimeStamp
 	case core.TimeStampz:
 		return "timestamp with time zone"
-	case core.Float:
-		res = core.Real
 	case core.TinyText, core.MediumText, core.LongText:
 		res = core.Text
 	case core.NVarchar:
@@ -64,12 +48,7 @@ func (db *db2) SqlType(c *core.Column) string {
 		return core.Uuid
 	case core.Blob, core.TinyBlob, core.MediumBlob, core.LongBlob:
 		return core.Bytea
-	case core.Double:
-		return "DOUBLE PRECISION"
 	default:
-		if c.IsAutoIncrement {
-			return core.Serial
-		}
 		res = t
 	}
 
@@ -116,6 +95,37 @@ func (db *db2) SupportCharset() bool {
 
 func (db *db2) IndexOnTable() bool {
 	return false
+}
+
+func (db *db2) CreateTableSql(table *core.Table, tableName, storeEngine, charset string) string {
+	var sql string
+	sql = "CREATE TABLE "
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	sql += db.Quote(tableName) + " ("
+
+	pkList := table.PrimaryKeys
+
+	for _, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		sql += col.StringNoPk(db)
+		if col.IsAutoIncrement {
+			sql += " GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1 )"
+		}
+		sql = strings.TrimSpace(sql)
+		sql += ", "
+	}
+
+	if len(pkList) > 0 {
+		sql += "PRIMARY KEY ( "
+		sql += db.Quote(strings.Join(pkList, db.Quote(",")))
+		sql += " ), "
+	}
+
+	sql = sql[:len(sql)-2] + ")"
+	return sql
 }
 
 func (db *db2) IndexCheckSql(tableName, idxName string) (string, []interface{}) {
@@ -298,10 +308,10 @@ where t.type = 'T' AND c.tabname = ?`
 
 func (db *db2) GetTables() ([]*core.Table, error) {
 	args := []interface{}{}
-	s := "SELECT NAME FROM SYSIBM.SYSTABLES WHERE type = 'T'"
+	s := "SELECT TABNAME FROM SYSCAT.TABLES WHERE type = 'T' AND OWNERTYPE = 'U'"
 	if len(db.Schema) != 0 {
 		args = append(args, db.Schema)
-		s = s + " AND creator = ?"
+		s = s + " AND TABSCHEMA = ?"
 	}
 
 	db.LogSQL(s, args)
@@ -392,6 +402,7 @@ type db2Driver struct{}
 
 func (p *db2Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) {
 	var dbName string
+	var defaultSchema string
 
 	kv := strings.Split(dataSourceName, ";")
 	for _, c := range kv {
@@ -400,6 +411,8 @@ func (p *db2Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) 
 			switch strings.ToLower(vv[0]) {
 			case "database":
 				dbName = vv[1]
+			case "uid":
+				defaultSchema = vv[1]
 			}
 		}
 	}
@@ -407,5 +420,9 @@ func (p *db2Driver) Parse(driverName, dataSourceName string) (*core.Uri, error) 
 	if dbName == "" {
 		return nil, errors.New("no db name provided")
 	}
-	return &core.Uri{DbName: dbName, DbType: "db2"}, nil
+	return &core.Uri{
+		DbName: dbName,
+		DbType: "db2",
+		Schema: defaultSchema,
+	}, nil
 }

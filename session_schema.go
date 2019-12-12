@@ -235,6 +235,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 	tables, err := engine.dialect.GetTables(session.getQueryer(), session.ctx)
 	if err != nil {
+		fmt.Println("------", tables, err)
 		return err
 	}
 
@@ -243,6 +244,8 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		session.autoResetStatement = true
 		session.resetStatement()
 	}()
+
+	fmt.Println("-----", tables, len(tables), len(beans))
 
 	for _, bean := range beans {
 		v := utils.ReflectValue(bean)
@@ -260,6 +263,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 
 		var oriTable *schemas.Table
 		for _, tb := range tables {
+			fmt.Println("----", tb.Name, engine.tbNameWithSchema(tb.Name), "===", tbName, engine.tbNameWithSchema(tbName))
 			if strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {
 				oriTable = tb
 				break
