@@ -400,6 +400,58 @@ services:
 
 ---
 kind: pipeline
+name: test-oracle
+depends_on:
+  - test-cockroach
+steps:
+- name: test-oracle
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
+    TEST_ORACLE_HOST: oracle:1521
+    TEST_ORACLE_DBNAME: xe
+    TEST_ORACLE_USERNAME: system
+    TEST_ORACLE_PASSWORD: oracle
+    TEST_CACHE_ENABLE: false
+  commands:
+  - make test-oracle
+
+- name: test-oracle-schema
+  pull: never
+  image: golang:1.15
+  depends_on:
+  - test-oracle
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
+    TEST_ORACLE_SCHEMA: xorm
+    TEST_ORACLE_HOST: oracle:1521
+    TEST_ORACLE_DBNAME: xe
+    TEST_ORACLE_USERNAME: system
+    TEST_ORACLE_PASSWORD: oracle
+    TEST_CACHE_ENABLE: true
+    SCHEMA: xorm
+  commands:
+  - make test-oracle
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+  - name: oracle
+    image: oracleinanutshell/oracle-xe-11g:latest
+    environment:
+     ORACLE_ALLOW_REMOTE: true
+     ORACLE_ENABLE_XDB: true
+
+---
+kind: pipeline
 name: merge_coverage
 depends_on:
   - test-mysql
@@ -410,6 +462,7 @@ depends_on:
   - test-tidb
   - test-cockroach
   #- test-dameng
+  - test-oracle
 trigger:
   ref:
   - refs/heads/master

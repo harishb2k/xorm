@@ -10,6 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.12.0
 	github.com/json-iterator/go v1.1.11
 	github.com/lib/pq v1.10.2
+	github.com/mattn/go-oci8 v0.1.0
 	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/shopspring/decimal v1.2.0
 	github.com/stretchr/testify v1.7.0
