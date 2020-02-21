@@ -18,6 +18,12 @@ TEST_COCKROACH_DBNAME ?= xorm_test
 TEST_COCKROACH_USERNAME ?= postgres
 TEST_COCKROACH_PASSWORD ?=
 
+TEST_DB2_HOST ?= db2
+TEST_DB2_PORT ?= 50000
+TEST_DB2_DBNAME ?= gitea
+TEST_DB2_USERNAME ?= sa
+TEST_DB2_PASSWORD ?= MwantsaSecurePassword1
+
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
@@ -45,6 +51,9 @@ TEST_TIDB_PASSWORD ?=
 
 TEST_CACHE_ENABLE ?= false
 TEST_QUOTE_POLICY ?= always
+
+DB2HOME := $(GOPATH)/src/github.com/ibmdb/go_ibm_db/installer
+DB2_DRIVER_DIR := $(DB2HOME)/clidriver
 
 .PHONY: all
 all: build
@@ -145,6 +154,28 @@ test-cockroach\#%: go-check
 	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=postgres -schema='$(TEST_COCKROACH_SCHEMA)' -cache=$(TEST_CACHE_ENABLE) \
 	-conn_str="postgres://$(TEST_COCKROACH_USERNAME):$(TEST_COCKROACH_PASSWORD)@$(TEST_COCKROACH_HOST)/$(TEST_COCKROACH_DBNAME)?sslmode=disable&experimental_serial_normalization=sql_sequence" \
 	-ignore_update_limit=true -coverprofile=cockroach.$(TEST_COCKROACH_SCHEMA).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+$(DB2_DRIVER_DIR):
+	GO111MODULE=off go get github.com/ibmdb/go_ibm_db
+	GO111MODULE=off cd $(DB2HOME) && go run setup.go
+
+.PNONY: test-db2
+test-db2: go-check $(DB2_DRIVER_DIR)
+	CGO_CFLAGS=-I$(DB2HOME)/clidriver/include \
+	CGO_LDFLAGS=-L$(DB2HOME)/clidriver/lib \
+	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2HOME)/clidriver/lib \
+	$(GO) test -race -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
+	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
+	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+.PNONY: test-db2\#%
+test-db2\#%: go-check
+	CGO_CFLAGS=-I$(DB2HOME)/clidriver/include \
+	CGO_LDFLAGS=-L$(DB2HOME)/clidriver/lib \
+	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2HOME)/clidriver/lib \
+	$(GO) test -race -run $* -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
+	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
+	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PNONY: test-mssql
 test-mssql: go-check
