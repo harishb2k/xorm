@@ -257,7 +257,9 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 	if err := session.statement.SetRefBean(bean); err != nil {
 		return 0, err
 	}
-	if len(session.statement.TableName()) <= 0 {
+
+	var tableName = session.statement.TableName()
+	if tableName == "" {
 		return 0, ErrTableNotFound
 	}
 
@@ -271,7 +273,6 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 		processor.BeforeInsert()
 	}
 
-	var tableName = session.statement.TableName()
 	table := session.statement.RefTable
 
 	colNames, args, err := session.genInsertColumns(bean)
