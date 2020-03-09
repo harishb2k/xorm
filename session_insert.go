@@ -504,13 +504,17 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 			}
 		}
 
-		if (col.IsCreated || col.IsUpdated) && session.statement.UseAutoTime /*&& isZero(fieldValue.Interface())*/ {
+		if (col.IsCreated || col.IsUpdated) && session.statement.UseAutoTime {
 			// if time is non-empty, then set to auto time
 			val, t, err := session.engine.nowTime(col)
 			if err != nil {
 				return nil, nil, err
 			}
-			args = append(args, val)
+			if session.engine.dialect.URI().DBType == schemas.ORACLE {
+				args = append(args, t)
+			} else {
+				args = append(args, val)
+			}
 
 			var colName = col.Name
 			session.afterClosures = append(session.afterClosures, func(bean interface{}) {

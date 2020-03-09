@@ -96,7 +96,6 @@ func BenchmarkOriQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(Id, Name, Title, Age, Alias, NickName)
 		}
 		rows.Close()
 	}

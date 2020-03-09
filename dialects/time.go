@@ -32,6 +32,9 @@ func FormatColumnTime(dialect Dialect, dbLocation *time.Location, col *schemas.C
 
 	switch col.SQLType.Name {
 	case schemas.Date:
+		if dialect.URI().DBType == schemas.ORACLE {
+			return t, nil
+		}
 		return t.Format("2006-01-02"), nil
 	case schemas.Time:
 		var layout = "15:04:05"
@@ -40,6 +43,9 @@ func FormatColumnTime(dialect Dialect, dbLocation *time.Location, col *schemas.C
 		}
 		return t.Format(layout), nil
 	case schemas.DateTime, schemas.TimeStamp:
+		if dialect.URI().DBType == schemas.ORACLE {
+			return t, nil
+		}
 		var layout = "2006-01-02 15:04:05"
 		if col.Length > 0 {
 			layout += "." + strings.Repeat("0", col.Length)
