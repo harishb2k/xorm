@@ -74,7 +74,7 @@ func (m *LRUCacher) GC() {
 			removedNum++
 			next := e.Next()
 			node := e.Value.(*sqlNode)
-			m.delIds(node.tbName, node.sql)
+			m.delIDs(node.tbName, node.sql)
 			e = next
 		} else {
 			break
@@ -83,7 +83,7 @@ func (m *LRUCacher) GC() {
 }
 
 // GetIds returns all bean's ids according to sql and parameter from cache
-func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
+func (m *LRUCacher) GetIDs(tableName, sql string) interface{} {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if _, ok := m.sqlIndex[tableName]; !ok {
@@ -97,7 +97,7 @@ func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 			lastTime := el.Value.(*sqlNode).lastVisit
 			// if expired, remove the node and return nil
 			if time.Now().Sub(lastTime) > m.Expired {
-				m.delIds(tableName, sql)
+				m.delIDs(tableName, sql)
 				return nil
 			}
 			m.sqlList.MoveToBack(el)
@@ -106,7 +106,7 @@ func (m *LRUCacher) GetIds(tableName, sql string) interface{} {
 		return v
 	}
 
-	m.delIds(tableName, sql)
+	m.delIDs(tableName, sql)
 	return nil
 }
 
@@ -140,8 +140,8 @@ func (m *LRUCacher) GetBean(tableName string, id string) interface{} {
 	return nil
 }
 
-// clearIds clears all sql-ids mapping on table tableName from cache
-func (m *LRUCacher) clearIds(tableName string) {
+// clearIDs clears all sql-ids mapping on table tableName from cache
+func (m *LRUCacher) clearIDs(tableName string) {
 	if tis, ok := m.sqlIndex[tableName]; ok {
 		for sql, v := range tis {
 			m.sqlList.Remove(v)
@@ -151,10 +151,10 @@ func (m *LRUCacher) clearIds(tableName string) {
 	m.sqlIndex[tableName] = make(map[string]*list.Element)
 }
 
-// ClearIds clears all sql-ids mapping on table tableName from cache
-func (m *LRUCacher) ClearIds(tableName string) {
+// ClearIDs clears all sql-ids mapping on table tableName from cache
+func (m *LRUCacher) ClearIDs(tableName string) {
 	m.mutex.Lock()
-	m.clearIds(tableName)
+	m.clearIDs(tableName)
 	m.mutex.Unlock()
 }
 
@@ -176,8 +176,8 @@ func (m *LRUCacher) ClearBeans(tableName string) {
 	m.mutex.Unlock()
 }
 
-// PutIds pus ids into table
-func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
+// PutIDs pus ids into table
+func (m *LRUCacher) PutIDs(tableName, sql string, ids interface{}) {
 	m.mutex.Lock()
 	if _, ok := m.sqlIndex[tableName]; !ok {
 		m.sqlIndex[tableName] = make(map[string]*list.Element)
@@ -192,7 +192,7 @@ func (m *LRUCacher) PutIds(tableName, sql string, ids interface{}) {
 	if m.sqlList.Len() > m.MaxElementSize {
 		e := m.sqlList.Front()
 		node := e.Value.(*sqlNode)
-		m.delIds(node.tbName, node.sql)
+		m.delIDs(node.tbName, node.sql)
 	}
 	m.mutex.Unlock()
 }
@@ -219,7 +219,7 @@ func (m *LRUCacher) PutBean(tableName string, id string, obj interface{}) {
 	m.mutex.Unlock()
 }
 
-func (m *LRUCacher) delIds(tableName, sql string) {
+func (m *LRUCacher) delIDs(tableName, sql string) {
 	if _, ok := m.sqlIndex[tableName]; ok {
 		if el, ok := m.sqlIndex[tableName][sql]; ok {
 			delete(m.sqlIndex[tableName], sql)
@@ -229,10 +229,10 @@ func (m *LRUCacher) delIds(tableName, sql string) {
 	m.store.Del(sql)
 }
 
-// DelIds deletes ids
-func (m *LRUCacher) DelIds(tableName, sql string) {
+// DelIDs deletes ids
+func (m *LRUCacher) DelIDs(tableName, sql string) {
 	m.mutex.Lock()
-	m.delIds(tableName, sql)
+	m.delIDs(tableName, sql)
 	m.mutex.Unlock()
 }
 
@@ -241,7 +241,7 @@ func (m *LRUCacher) delBean(tableName string, id string) {
 	if el, ok := m.idIndex[tableName][id]; ok {
 		delete(m.idIndex[tableName], id)
 		m.idList.Remove(el)
-		m.clearIds(tableName)
+		m.clearIDs(tableName)
 	}
 	m.store.Del(tid)
 }

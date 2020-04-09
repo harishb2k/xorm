@@ -105,7 +105,7 @@ steps:
     TEST_MYSQL_PASSWORD:
   commands:
   - make test-mysql
-  - TEST_CACHE_ENABLE=true make test-mysql
+  - TEST_CACHE_CONNSTR=memory make test-mysql
   - TEST_QUOTE_POLICY=reserved make test-mysql
 
 volumes:
@@ -237,7 +237,7 @@ steps:
     TEST_MSSQL_PASSWORD: "yourStrong(!)Password"
   commands:
   - make test-mssql
-  - TEST_CACHE_ENABLE=true make test-mssql
+  - TEST_CACHE_CONNSTR=memory make test-mssql
   - TEST_QUOTE_POLICY=reserved make test-mssql
   - TEST_MSSQL_DEFAULT_VARCHAR=NVARCHAR TEST_MSSQL_DEFAULT_CHAR=NCHAR make test-mssql
 
@@ -278,7 +278,7 @@ steps:
     TEST_TIDB_PASSWORD:
   commands:
   - make test-tidb
-  - TEST_CACHE_ENABLE=true make test-tidb
+  - TEST_CACHE_CONNSTR=memory make test-tidb
   - TEST_QUOTE_POLICY=reserved make test-tidb
 
 volumes:

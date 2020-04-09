@@ -61,7 +61,7 @@ TEST_PGSQL_HOST= TEST_PGSQL_SCHEMA= TEST_PGSQL_DBNAME= TEST_PGSQL_USERNAME= TEST
 TEST_TIDB_HOST= TEST_TIDB_DBNAME= TEST_TIDB_USERNAME= TEST_TIDB_PASSWORD= make test-tidb
 ```
 
-And if your branch is related with cache, you could also enable it via `TEST_CACHE_ENABLE=true`.
+And if your branch is related with cache, you could also enable it via `TEST_CACHE_CONNSTR=memory`.
 
 ### Patch review
 

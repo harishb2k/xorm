@@ -445,7 +445,7 @@ func (session *Session) cacheInsert(table string) error {
 		return nil
 	}
 	session.engine.logger.Debugf("[cache] clear SQL: %v", table)
-	cacher.ClearIds(table)
+	cacher.ClearIDs(table)
 	return nil
 }
 

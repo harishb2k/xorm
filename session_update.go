@@ -49,7 +49,7 @@ func (session *Session) cacheUpdate(table *schemas.Table, tableName, sqlStr stri
 
 	cacher := session.engine.GetCacher(tableName)
 	session.engine.logger.Debugf("[cache] get cache sql: %v, %v", newsql, args[nStart:])
-	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args[nStart:])
+	ids, err := caches.GetCacheSQL(cacher, tableName, newsql, args[nStart:])
 	if err != nil {
 		rows, err := session.NoCache().queryRows(newsql, args[nStart:]...)
 		if err != nil {
@@ -137,7 +137,7 @@ func (session *Session) cacheUpdate(table *schemas.Table, tableName, sqlStr stri
 		}
 	}
 	session.engine.logger.Debugf("[cache] clear cached table sql: %v", tableName)
-	cacher.ClearIds(tableName)
+	cacher.ClearIDs(tableName)
 	return nil
 }
 
@@ -433,7 +433,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	if cacher := session.engine.GetCacher(tableName); cacher != nil && session.statement.UseCache {
 		// session.cacheUpdate(table, tableName, sqlStr, args...)
 		session.engine.logger.Debugf("[cache] clear table: %v", tableName)
-		cacher.ClearIds(tableName)
+		cacher.ClearIDs(tableName)
 		cacher.ClearBeans(tableName)
 	}
 

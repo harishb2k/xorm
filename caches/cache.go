@@ -47,17 +47,17 @@ type CacheStore interface {
 // Cacher is an interface to provide cache
 // id format : u-<pk1>-<pk2>...
 type Cacher interface {
-	GetIds(tableName, sql string) interface{}
+	GetIDs(tableName, sql string) interface{}
 	GetBean(tableName string, id string) interface{}
-	PutIds(tableName, sql string, ids interface{})
+	PutIDs(tableName, sql string, ids interface{})
 	PutBean(tableName string, id string, obj interface{})
-	DelIds(tableName, sql string)
+	DelIDs(tableName, sql string)
 	DelBean(tableName string, id string)
-	ClearIds(tableName string)
+	ClearIDs(tableName string)
 	ClearBeans(tableName string)
 }
 
-func encodeIds(ids []schemas.PK) (string, error) {
+func encodeIDs(ids []schemas.PK) (string, error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	err := enc.Encode(ids)
@@ -65,7 +65,7 @@ func encodeIds(ids []schemas.PK) (string, error) {
 	return buf.String(), err
 }
 
-func decodeIds(s string) ([]schemas.PK, error) {
+func decodeIDs(s string) ([]schemas.PK, error) {
 	pks := make([]schemas.PK, 0)
 
 	dec := gob.NewDecoder(strings.NewReader(s))
@@ -74,26 +74,26 @@ func decodeIds(s string) ([]schemas.PK, error) {
 	return pks, err
 }
 
-// GetCacheSql returns cacher PKs via SQL
-func GetCacheSql(m Cacher, tableName, sql string, args interface{}) ([]schemas.PK, error) {
-	bytes := m.GetIds(tableName, GenSqlKey(sql, args))
+// GetCacheSQL returns cacher PKs via SQL
+func GetCacheSQL(m Cacher, tableName, sql string, args interface{}) ([]schemas.PK, error) {
+	bytes := m.GetIDs(tableName, GenSQLKey(sql, args))
 	if bytes == nil {
 		return nil, errors.New("Not Exist")
 	}
-	return decodeIds(bytes.(string))
+	return decodeIDs(bytes.(string))
 }
 
-// PutCacheSql puts cacher SQL and PKs
-func PutCacheSql(m Cacher, ids []schemas.PK, tableName, sql string, args interface{}) error {
-	bytes, err := encodeIds(ids)
+// PutCacheSQL puts cacher SQL and PKs
+func PutCacheSQL(m Cacher, ids []schemas.PK, tableName, sql string, args interface{}) error {
+	bytes, err := encodeIDs(ids)
 	if err != nil {
 		return err
 	}
-	m.PutIds(tableName, GenSqlKey(sql, args), bytes)
+	m.PutIDs(tableName, GenSQLKey(sql, args), bytes)
 	return nil
 }
 
-// GenSqlKey generates cache key
-func GenSqlKey(sql string, args interface{}) string {
+// GenSQLKey generates cache key
+func GenSQLKey(sql string, args interface{}) string {
 	return fmt.Sprintf("%v-%v", sql, args)
 }

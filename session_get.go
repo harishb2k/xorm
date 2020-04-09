@@ -300,7 +300,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 
 	session.engine.logger.Debugf("[cache] Get SQL: %s, %v", newsql, args)
 	table := session.statement.RefTable
-	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
+	ids, err := caches.GetCacheSQL(cacher, tableName, newsql, args)
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
 		rows, err := session.NoCache().queryRows(newsql, args...)
@@ -338,7 +338,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 
 		ids = []schemas.PK{pk}
 		session.engine.logger.Debugf("[cache] cache ids: %s, %v", newsql, ids)
-		err = caches.PutCacheSql(cacher, ids, tableName, newsql, args)
+		err = caches.PutCacheSQL(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return false, err
 		}

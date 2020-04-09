@@ -38,7 +38,7 @@ func (session *Session) cacheDelete(table *schemas.Table, tableName, sqlStr stri
 
 	cacher := session.engine.cacherMgr.GetCacher(tableName)
 	pkColumns := table.PKColumns()
-	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
+	ids, err := caches.GetCacheSQL(cacher, tableName, newsql, args)
 	if err != nil {
 		resultsSlice, err := session.queryBytes(newsql, args...)
 		if err != nil {
@@ -78,7 +78,7 @@ func (session *Session) cacheDelete(table *schemas.Table, tableName, sqlStr stri
 		cacher.DelBean(tableName, sid)
 	}
 	session.engine.logger.Debugf("[cache] clear cache table: %v", tableName)
-	cacher.ClearIds(tableName)
+	cacher.ClearIDs(tableName)
 	return nil
 }
 

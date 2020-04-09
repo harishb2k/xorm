@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ var (
 	showSQL            = flag.Bool("show_sql", true, "show generated SQLs")
 	ptrConnStr         = flag.String("conn_str", "./test.db?cache=shared&mode=rwc", "test database connection string")
 	mapType            = flag.String("map_type", "snake", "indicate the name mapping")
-	cacheFlag          = flag.Bool("cache", false, "if enable cache")
+	cacheConnstr       = flag.String("cache", "none", "Enable cache or not, could be <empty>, memory, leveldb://<dirpath> or redis://:<passwd>@host")
 	cluster            = flag.Bool("cluster", false, "if this is a cluster")
 	splitter           = flag.String("splitter", ";", "the splitter on connstr for cluster")
 	schema             = flag.String("schema", "", "specify the schema")
@@ -125,9 +126,39 @@ func createEngine(dbType, connStr string) error {
 		}
 		testEngine.ShowSQL(*showSQL)
 		testEngine.SetLogLevel(log.LOG_DEBUG)
-		if *cacheFlag {
-			cacher := caches.NewLRUCacher(caches.NewMemoryStore(), 100000)
-			testEngine.SetDefaultCacher(cacher)
+
+		if cacheConnstr != nil {
+			switch {
+			case *cacheConnstr == "memory":
+				cacher := caches.NewLRUCacher(caches.NewMemoryStore(), 100000)
+				testEngine.SetDefaultCacher(cacher)
+			case strings.HasPrefix(*cacheConnstr, "leveldb"):
+				p := (*cacheConnstr)[10:]
+				store, err := caches.NewLevelDBStore(p)
+				if err != nil {
+					return err
+				}
+				cacher := caches.NewLRUCacher(store, 100000)
+				testEngine.SetDefaultCacher(cacher)
+			case strings.HasPrefix(*cacheConnstr, "redis"):
+				u, err := url.Parse(*cacheConnstr)
+				if err != nil {
+					return err
+				}
+				var passwd string
+				if u.User != nil {
+					passwd, _ = u.User.Password()
+				}
+				var dbIdx int
+				p := strings.TrimPrefix(u.Path, "/")
+				if p != "" {
+					dbIdx, _ = strconv.Atoi(p)
+				}
+
+				logger := testEngine.(*xorm.Engine).Logger().(log.Logger)
+				cacher := caches.NewRedisCacher(u.Host, passwd, dbIdx, caches.DefaultRedisExpiration, logger)
+				testEngine.SetDefaultCacher(cacher)
+			}
 		}
 
 		if len(*mapType) > 0 {

@@ -892,7 +892,7 @@ func (engine *Engine) ClearCacheBean(bean interface{}, id string) error {
 	tableName := dialects.FullTableName(engine.dialect, engine.GetTableMapper(), bean)
 	cacher := engine.GetCacher(tableName)
 	if cacher != nil {
-		cacher.ClearIds(tableName)
+		cacher.ClearIDs(tableName)
 		cacher.DelBean(tableName, id)
 	}
 	return nil
@@ -904,7 +904,7 @@ func (engine *Engine) ClearCache(beans ...interface{}) error {
 		tableName := dialects.FullTableName(engine.dialect, engine.GetTableMapper(), bean)
 		cacher := engine.GetCacher(tableName)
 		if cacher != nil {
-			cacher.ClearIds(tableName)
+			cacher.ClearIDs(tableName)
 			cacher.ClearBeans(tableName)
 		}
 	}

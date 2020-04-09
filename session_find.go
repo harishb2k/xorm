@@ -311,7 +311,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	}
 
 	table := session.statement.RefTable
-	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
+	ids, err := caches.GetCacheSQL(cacher, tableName, newsql, args)
 	if err != nil {
 		rows, err := session.queryRows(newsql, args...)
 		if err != nil {
@@ -347,7 +347,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		}
 
 		session.engine.logger.Debugf("[cache] cache sql: %v, %v, %v, %v, %v", ids, tableName, sqlStr, newsql, args)
-		err = caches.PutCacheSql(cacher, ids, tableName, newsql, args)
+		err = caches.PutCacheSQL(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return err
 		}
