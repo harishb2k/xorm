@@ -44,6 +44,7 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 	}
 
 	var hasInsertColumns = len(colNames) > 0
+<<<<<<< HEAD
 	var needSeq = len(table.AutoIncrement) > 0 && (statement.dialect.URI().DBType == schemas.ORACLE || statement.dialect.URI().DBType == schemas.DAMENG)
 	if needSeq {
 		for _, col := range colNames {
@@ -56,6 +57,10 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 
 	if !hasInsertColumns && statement.dialect.URI().DBType != schemas.ORACLE &&
 		statement.dialect.URI().DBType != schemas.DAMENG {
+=======
+
+	if !hasInsertColumns && statement.dialect.URI().DBType != schemas.ORACLE {
+>>>>>>> d24e7cb (Fix insert)
 		if statement.dialect.URI().DBType == schemas.MYSQL {
 			if _, err := buf.WriteString(" VALUES ()"); err != nil {
 				return nil, err

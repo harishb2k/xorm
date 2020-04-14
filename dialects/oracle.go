@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -916,10 +917,30 @@ func (g *godrorDriver) Features() *DriverFeatures {
 	}
 }
 
+func parseNoProtocol(driverName, dataSourceName string) (*URI, error) {
+	db := &URI{DBType: schemas.ORACLE}
+	dsnPattern := regexp.MustCompile(
+		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@
+			`(?P<net>.*)` + // ip:port
+			`\/(?P<dbname>.*)`) // dbname
+	matches := dsnPattern.FindStringSubmatch(dataSourceName)
+	names := dsnPattern.SubexpNames()
+	for i, match := range matches {
+		switch names[i] {
+		case "dbname":
+			db.DBName = match
+		}
+	}
+	if db.DBName == "" && len(matches) != 0 {
+		return nil, errors.New("dbname is empty")
+	}
+	return db, nil
+}
+
 func parseOracle(driverName, dataSourceName string) (*URI, error) {
 	var connStr = dataSourceName
 	if !strings.HasPrefix(connStr, "oracle://") {
-		connStr = fmt.Sprintf("oracle://%s", connStr)
+		return parseNoProtocol(driverName, dataSourceName)
 	}
 
 	u, err := url.Parse(connStr)
