@@ -43,6 +43,11 @@ TEST_TIDB_DBNAME ?= xorm_test
 TEST_TIDB_USERNAME ?= root
 TEST_TIDB_PASSWORD ?=
 
+TEST_CLICKHOUSE_HOST ?= clickhouse:9000
+TEST_CLICKHOUSE_DBNAME ?= xorm_test
+TEST_CLICKHOUSE_USERNAME ?= root
+TEST_CLICKHOUSE_PASSWORD ?=
+
 TEST_CACHE_ENABLE ?= false
 TEST_QUOTE_POLICY ?= always
 
@@ -104,6 +109,7 @@ help:
 	@echo " - test-sqlite3      run integration tests for sqlite"
 	@echo " - test-sqlite       run integration tests for pure go sqlite"
 	@echo " - test-tidb         run integration tests for tidb"
+	@echo " - test-clickhouse   run integration tests for clickhouse"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 
 .PHONY: lint
@@ -239,6 +245,18 @@ test-tidb: go-check
 test-tidb\#%: go-check
 	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=mysql -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
 	-conn_str="$(TEST_TIDB_USERNAME):$(TEST_TIDB_PASSWORD)@tcp($(TEST_TIDB_HOST))/$(TEST_TIDB_DBNAME)" \
+	-quote=$(TEST_QUOTE_POLICY) -coverprofile=tidb.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+.PNONY: test-clickhouse
+test-clickhouse: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -db=mysql -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
+	-conn_str="tcp://$(TEST_CLICKHOUSE_HOST)?username=$(TEST_CLICKHOUSE_USERNAME)&password=$(TEST_CLICKHOUSE_PASSWORD)&database=$(TEST_CLICKHOUSE_DBNAME)" \
+	-quote=$(TEST_QUOTE_POLICY) -coverprofile=tidb.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+.PHONY: test-clickhouse\#%
+test-clickhouse\#%: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=mysql -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
+	-conn_str="tcp://$(TEST_CLICKHOUSE_HOST)?username=$(TEST_CLICKHOUSE_USERNAME)&password=$(TEST_CLICKHOUSE_PASSWORD)&database=$(TEST_CLICKHOUSE_DBNAME)" \
 	-quote=$(TEST_QUOTE_POLICY) -coverprofile=tidb.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PHONY: vet
