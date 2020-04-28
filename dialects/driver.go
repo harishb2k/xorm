@@ -8,7 +8,9 @@ import (
 	"fmt"
 )
 
+// Driver represents a driver interface
 type Driver interface {
+	Name() string
 	Parse(string, string) (*URI, error)
 }
 
@@ -16,6 +18,7 @@ var (
 	drivers = map[string]Driver{}
 )
 
+// RegisterDriver register a driver
 func RegisterDriver(driverName string, driver Driver) {
 	if driver == nil {
 		panic("core: Register driver is nil")

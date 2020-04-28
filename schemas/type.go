@@ -19,6 +19,7 @@ const (
 	MYSQL    DBType = "mysql"
 	MSSQL    DBType = "mssql"
 	ORACLE   DBType = "oracle"
+	GREENPLUM DBType = "greenplum"
 )
 
 // SQLType represents SQL types

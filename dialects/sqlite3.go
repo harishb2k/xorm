@@ -520,6 +520,10 @@ func (db *sqlite3) Filters() []Filter {
 type sqlite3Driver struct {
 }
 
+func (p *sqlite3Driver) Name() string {
+	return "sqlite3"
+}
+
 func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	if strings.Contains(dataSourceName, "?") {
 		dataSourceName = dataSourceName[:strings.Index(dataSourceName, "?")]

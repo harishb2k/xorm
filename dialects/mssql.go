@@ -531,6 +531,11 @@ func (db *mssql) Filters() []Filter {
 }
 
 type odbcDriver struct {
+	name string
+}
+
+func (p *odbcDriver) Name() string {
+	return p.name
 }
 
 func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {

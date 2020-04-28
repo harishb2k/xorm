@@ -805,6 +805,10 @@ func (db *oracle) Filters() []Filter {
 type goracleDriver struct {
 }
 
+func (d *goracleDriver) Name() string {
+	return "goracle"
+}
+
 func (cfg *goracleDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	db := &URI{DBType: schemas.ORACLE}
 	dsnPattern := regexp.MustCompile(
@@ -829,6 +833,10 @@ func (cfg *goracleDriver) Parse(driverName, dataSourceName string) (*URI, error)
 }
 
 type oci8Driver struct {
+}
+
+func (d *oci8Driver) Name() string {
+	return "oci8"
 }
 
 // dataSourceName=user/password@ipv4:port/dbname

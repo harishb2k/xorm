@@ -1241,6 +1241,11 @@ func (db *postgres) Filters() []Filter {
 }
 
 type pqDriver struct {
+	name string
+}
+
+func (d *pqDriver) Name() string {
+	return d.name
 }
 
 type values map[string]string
@@ -1319,6 +1324,10 @@ func (p *pqDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 
 type pqDriverPgx struct {
 	pqDriver
+}
+
+func (pgx *pqDriverPgx) Name() string {
+	return "pgx"
 }
 
 func (pgx *pqDriverPgx) Parse(driverName, dataSourceName string) (*URI, error) {

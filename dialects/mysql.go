@@ -573,6 +573,10 @@ func (db *mysql) Filters() []Filter {
 type mymysqlDriver struct {
 }
 
+func (d *mymysqlDriver) Name() string {
+	return "mymysql"
+}
+
 func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	uri := &URI{DBType: schemas.MYSQL}
 
@@ -623,6 +627,10 @@ func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 }
 
 type mysqlDriver struct {
+}
+
+func (d *mysqlDriver) Name() string {
+	return "mysql"
 }
 
 func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
