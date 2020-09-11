@@ -6,7 +6,7 @@ xorm 是一个简单而强大的Go语言ORM库. 通过它可以使数据库操�
 
 [![Build Status](https://drone.gitea.com/api/badges/xorm/xorm/status.svg)](https://drone.gitea.com/xorm/xorm) [![](http://gocover.io/_badge/xorm.io/xorm)](https://gocover.io/xorm.io/xorm) [![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm) [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
-## Notice
+## 注意
 
 v1.0.0 相对于 v0.8.2 有以下不兼容的变更：
 
