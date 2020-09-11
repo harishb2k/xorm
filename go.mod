@@ -7,7 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-json v0.7.4
 	github.com/jackc/pgx/v4 v4.12.0
-	github.com/ibmdb/go_ibm_db v0.1.0
+	github.com/ibmdb/go_ibm_db v0.3.0
 	github.com/json-iterator/go v1.1.11
 	github.com/lib/pq v1.10.2
 	github.com/mattn/go-sqlite3 v1.14.8
