@@ -387,11 +387,14 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 				}
 			}
 		}
+		if colType == "INT UNSIGNED" {
+			colType = schemas.Int
+		}
 		if colType == "FLOAT UNSIGNED" {
-			colType = "FLOAT"
+			colType = schemas.Float
 		}
 		if colType == "DOUBLE UNSIGNED" {
-			colType = "DOUBLE"
+			colType = schemas.Double
 		}
 		col.Length = len1
 		col.Length2 = len2
