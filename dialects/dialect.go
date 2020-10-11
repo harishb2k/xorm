@@ -280,5 +280,14 @@ func ColumnString(dialect Dialect, col *schemas.Column, includePrimaryKey bool) 
 		}
 	}
 
+	if col.IsOnUpdate {
+		if _, err := bd.WriteString("ON UPDATE CURRENT_TIMESTAMP"); err != nil {
+			return "", err
+		}
+		if err := bd.WriteByte(' '); err != nil {
+			return "", err
+		}
+	}
+
 	return bd.String(), nil
 }

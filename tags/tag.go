@@ -57,25 +57,26 @@ type Handler func(ctx *Context) error
 var (
 	// defaultTagHandlers enumerates all the default tag handler
 	defaultTagHandlers = map[string]Handler{
-		"<-":       OnlyFromDBTagHandler,
-		"->":       OnlyToDBTagHandler,
-		"PK":       PKTagHandler,
-		"NULL":     NULLTagHandler,
-		"NOT":      IgnoreTagHandler,
-		"AUTOINCR": AutoIncrTagHandler,
-		"DEFAULT":  DefaultTagHandler,
-		"CREATED":  CreatedTagHandler,
-		"UPDATED":  UpdatedTagHandler,
-		"DELETED":  DeletedTagHandler,
-		"VERSION":  VersionTagHandler,
-		"UTC":      UTCTagHandler,
-		"LOCAL":    LocalTagHandler,
-		"NOTNULL":  NotNullTagHandler,
-		"INDEX":    IndexTagHandler,
-		"UNIQUE":   UniqueTagHandler,
-		"CACHE":    CacheTagHandler,
-		"NOCACHE":  NoCacheTagHandler,
-		"COMMENT":  CommentTagHandler,
+		"<-":        OnlyFromDBTagHandler,
+		"->":        OnlyToDBTagHandler,
+		"PK":        PKTagHandler,
+		"NULL":      NULLTagHandler,
+		"NOT":       IgnoreTagHandler,
+		"AUTOINCR":  AutoIncrTagHandler,
+		"DEFAULT":   DefaultTagHandler,
+		"CREATED":   CreatedTagHandler,
+		"UPDATED":   UpdatedTagHandler,
+		"DELETED":   DeletedTagHandler,
+		"VERSION":   VersionTagHandler,
+		"UTC":       UTCTagHandler,
+		"LOCAL":     LocalTagHandler,
+		"NOTNULL":   NotNullTagHandler,
+		"INDEX":     IndexTagHandler,
+		"UNIQUE":    UniqueTagHandler,
+		"CACHE":     CacheTagHandler,
+		"NOCACHE":   NoCacheTagHandler,
+		"COMMENT":   CommentTagHandler,
+		"ON_UPDATE": OnUpdateTagHandler,
 	}
 )
 
@@ -212,6 +213,12 @@ func UniqueTagHandler(ctx *Context) error {
 	} else {
 		ctx.isUnique = true
 	}
+	return nil
+}
+
+// OnUpdateTagHandler
+func OnUpdateTagHandler(ctx *Context) error {
+	ctx.col.IsOnUpdate = true
 	return nil
 }
 

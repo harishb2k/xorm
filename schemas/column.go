@@ -30,6 +30,7 @@ type Column struct {
 	Length2         int
 	Nullable        bool
 	Default         string
+	IsOnUpdate      bool
 	Indexes         map[string]int
 	IsPrimaryKey    bool
 	IsAutoIncrement bool

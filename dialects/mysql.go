@@ -414,7 +414,9 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 		if extra == "auto_increment" {
 			col.IsAutoIncrement = true
 		}
-
+		if strings.Contains(extra, "ON UPDATE CURRENT_TIMESTAMP") {
+			col.IsOnUpdate = true
+		}
 		if !col.DefaultIsEmpty {
 			if !alreadyQuoted && col.SQLType.IsText() {
 				col.Default = "'" + col.Default + "'"

@@ -296,6 +296,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			for _, col2 := range oriTable.Columns() {
 				if strings.EqualFold(col.Name, col2.Name) {
 					oriCol = col2
+					oriCol.IsOnUpdate = col.IsOnUpdate
 					break
 				}
 			}
