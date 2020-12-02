@@ -542,7 +542,8 @@ func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.V
 
 func (db *oracle) Features() *DialectFeatures {
 	return &DialectFeatures{
-		AutoincrMode: SequenceAutoincrMode,
+		AutoincrMode:              SequenceAutoincrMode,
+		SupportReturnIDWhenInsert: false,
 	}
 }
 
@@ -553,8 +554,9 @@ func (db *oracle) SQLType(c *schemas.Column) string {
 		res = "NUMBER"
 	case schemas.Binary, schemas.VarBinary, schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob, schemas.Bytea:
 		return schemas.Blob
-	case schemas.Time, schemas.DateTime, schemas.TimeStamp:
+	case schemas.Date, schemas.Time, schemas.DateTime, schemas.TimeStamp:
 		res = schemas.Date
+		return res
 	case schemas.TimeStampz:
 		res = "TIMESTAMP"
 	case schemas.Float, schemas.Double, schemas.Numeric, schemas.Decimal:
@@ -607,42 +609,44 @@ func (db *oracle) DropTableSQL(tableName, autoincrCol string) ([]string, bool) {
 		fmt.Sprintf("DROP TABLE %s", db.quoter.Quote(tableName)),
 	}
 	if autoincrCol != "" {
-		sqls = append(sqls, fmt.Sprintf("DROP SEQUENCE %s", seqName(tableName)))
+		sqls = append(sqls, fmt.Sprintf("DROP SEQUENCE %s", OracleSeqName(tableName)))
 	}
 	return sqls, false
 }
 
 func (db *oracle) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {
-	var sql = "CREATE TABLE "
 	if tableName == "" {
 		tableName = table.Name
 	}
 
 	quoter := db.Quoter()
-	sql += quoter.Quote(tableName) + " ("
+	var b strings.Builder
+	b.WriteString("CREATE TABLE ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
 
 	pkList := table.PrimaryKeys
 
-	for _, colName := range table.ColumnsSeq() {
+	for i, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		/*if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += col.String(b.dialect)
-		} else {*/
 		s, _ := ColumnString(db, col, false)
-		sql += s
-		// }
-		sql = strings.TrimSpace(sql)
-		sql += ", "
+		b.WriteString(s)
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
 	}
 
 	if len(pkList) > 0 {
-		sql += "PRIMARY KEY ( "
-		sql += quoter.Join(pkList, ",")
-		sql += " ), "
+		if len(table.ColumnsSeq()) > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString("PRIMARY KEY (")
+		quoter.JoinWrite(&b, pkList, ",")
+		b.WriteString(")")
 	}
+	b.WriteString(")")
 
-	sql = sql[:len(sql)-2] + ")"
-	return sql, false, nil
+	return b.String(), false, nil
 }
 
 func (db *oracle) SetQuotePolicy(quotePolicy QuotePolicy) {
@@ -679,7 +683,7 @@ func (db *oracle) IsColumnExist(queryer core.Queryer, ctx context.Context, table
 	return db.HasRecords(queryer, ctx, query, args...)
 }
 
-func seqName(tableName string) string {
+func OracleSeqName(tableName string) string {
 	return "SEQ_" + strings.ToUpper(tableName)
 }
 
@@ -746,7 +750,7 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		if pkName != "" && pkName == col.Name {
 			col.IsPrimaryKey = true
 
-			has, err := db.HasRecords(queryer, ctx, "SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = :1", seqName(tableName))
+			has, err := db.HasRecords(queryer, ctx, "SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = :1", OracleSeqName(tableName))
 			if err != nil {
 				return nil, nil, err
 			}

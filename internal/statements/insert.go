@@ -44,7 +44,6 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 	}
 
 	var hasInsertColumns = len(colNames) > 0
-<<<<<<< HEAD
 	var needSeq = len(table.AutoIncrement) > 0 && (statement.dialect.URI().DBType == schemas.ORACLE || statement.dialect.URI().DBType == schemas.DAMENG)
 	if needSeq {
 		for _, col := range colNames {
@@ -57,10 +56,6 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 
 	if !hasInsertColumns && statement.dialect.URI().DBType != schemas.ORACLE &&
 		statement.dialect.URI().DBType != schemas.DAMENG {
-=======
-
-	if !hasInsertColumns && statement.dialect.URI().DBType != schemas.ORACLE {
->>>>>>> d24e7cb (Fix insert)
 		if statement.dialect.URI().DBType == schemas.MYSQL {
 			if _, err := buf.WriteString(" VALUES ()"); err != nil {
 				return nil, err
@@ -173,14 +168,20 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 		}
 	}
 
-	if len(table.AutoIncrement) > 0 && (statement.dialect.URI().DBType == schemas.POSTGRES ||
-		statement.dialect.URI().DBType == schemas.ORACLE) {
-		if _, err := buf.WriteString(" RETURNING "); err != nil {
-			return nil, err
-		}
-		if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
-			return nil, err
-		}
+	if len(table.AutoIncrement) > 0 {
+		if statement.dialect.URI().DBType == schemas.POSTGRES {
+			if _, err := buf.WriteString(" RETURNING "); err != nil {
+				return nil, err
+			}
+			if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
+				return nil, err
+			}
+		} /* else if statement.dialect.URI().DBType == schemas.ORACLE {
+			if _, err := buf.WriteString(fmt.Sprintf("; select %s.currval from dual",
+				dialects.OracleSeqName(tableName))); err != nil {
+				return nil, err
+			}
+		}*/
 	}
 
 	return buf, nil

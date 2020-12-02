@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/dialects"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -885,11 +886,12 @@ func TestAfterLoadProcessor(t *testing.T) {
 }
 
 type AfterInsertStruct struct {
-	Id int64
+	Id      int64
+	Dialect dialects.Dialect `xorm:"-"`
 }
 
 func (a *AfterInsertStruct) AfterInsert() {
-	if a.Id == 0 {
+	if a.Dialect.Features().SupportReturnIDWhenInsert && a.Id == 0 {
 		panic("a.Id")
 	}
 }
@@ -899,6 +901,8 @@ func TestAfterInsert(t *testing.T) {
 
 	assertSync(t, new(AfterInsertStruct))
 
-	_, err := testEngine.Insert(&AfterInsertStruct{})
+	_, err := testEngine.Insert(&AfterInsertStruct{
+		Dialect: testEngine.Dialect(),
+	})
 	assert.NoError(t, err)
 }
