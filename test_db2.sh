@@ -1,6 +1,6 @@
 #!/bin/bash
 
-go get github.com/ibmdb/go_ibm_db
+go get -d github.com/ibmdb/go_ibm_db
 export DB2HOME=$GOPATH/src/github.com/ibmdb/go_ibm_db/installer
 cur="$PWD"
 cd $DB2HOME && go run setup.go

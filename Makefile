@@ -52,7 +52,7 @@ TEST_TIDB_PASSWORD ?=
 TEST_CACHE_ENABLE ?= false
 TEST_QUOTE_POLICY ?= always
 
-DB2HOME := $(GOPATH)/src/github.com/ibmdb/go_ibm_db/installer
+DB2HOME := $(GOPATH)/pkg/mod/github.com/ibmdb/go_ibm_db@v0.3.0/installer
 DB2_DRIVER_DIR := $(DB2HOME)/clidriver
 
 .PHONY: all
@@ -156,8 +156,8 @@ test-cockroach\#%: go-check
 	-ignore_update_limit=true -coverprofile=cockroach.$(TEST_COCKROACH_SCHEMA).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 $(DB2_DRIVER_DIR):
-	GO111MODULE=off go get github.com/ibmdb/go_ibm_db
-	GO111MODULE=off cd $(DB2HOME) && go run setup.go
+	go get -d -v github.com/ibmdb/go_ibm_db@v0.3.0
+	cd $(DB2HOME) && go run setup.go
 
 .PNONY: test-db2
 test-db2: go-check $(DB2_DRIVER_DIR)
