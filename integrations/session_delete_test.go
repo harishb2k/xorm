@@ -73,6 +73,11 @@ func TestDelete(t *testing.T) {
 func TestDeleteLimit(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
+	if testEngine.Dialect().URI().DBType == schemas.MSSQL {
+		t.Skip()
+		return
+	}
+
 	type UserinfoDeleteLimit struct {
 		Uid   int64 `xorm:"id pk not null autoincr"`
 		IsMan bool
