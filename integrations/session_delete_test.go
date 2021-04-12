@@ -70,6 +70,58 @@ func TestDelete(t *testing.T) {
 	assert.False(t, has)
 }
 
+func TestDeleteLimit(t *testing.T) {
+	assert.NoError(t, PrepareEngine())
+
+	type UserinfoDeleteLimit struct {
+		Uid   int64 `xorm:"id pk not null autoincr"`
+		IsMan bool
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(UserinfoDeleteLimit)))
+
+	session := testEngine.NewSession()
+	defer session.Close()
+
+	var err error
+	if testEngine.Dialect().URI().DBType == schemas.MSSQL {
+		err = session.Begin()
+		assert.NoError(t, err)
+		_, err = session.Exec("SET IDENTITY_INSERT userinfo_delete ON")
+		assert.NoError(t, err)
+	}
+
+	user := UserinfoDeleteLimit{Uid: 1, IsMan: true}
+	cnt, err := session.Insert(&user)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	user2 := UserinfoDeleteLimit{Uid: 2}
+	cnt, err = session.Insert(&user2)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	if testEngine.Dialect().URI().DBType == schemas.MSSQL {
+		err = session.Commit()
+		assert.NoError(t, err)
+	}
+
+	cnt, err = testEngine.Limit(1, 1).Delete(&UserinfoDeleteLimit{})
+	assert.Error(t, err)
+	assert.EqualValues(t, 0, cnt)
+
+	cnt, err = testEngine.Limit(1).Desc("id").Delete(&UserinfoDeleteLimit{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var users []UserinfoDeleteLimit
+	err = testEngine.Find(&users)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users))
+	assert.EqualValues(t, 1, users[0].Uid)
+	assert.EqualValues(t, true, users[0].IsMan)
+}
+
 func TestDeleted(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 

@@ -126,6 +126,9 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		orderSQL += fmt.Sprintf(" ORDER BY %s", session.statement.OrderStr)
 	}
 	if pLimitN != nil && *pLimitN > 0 {
+		if session.statement.Start > 0 {
+			return 0, fmt.Errorf("Delete with Limit start is unsupported")
+		}
 		limitNValue := *pLimitN
 		orderSQL += fmt.Sprintf(" LIMIT %d", limitNValue)
 	}
