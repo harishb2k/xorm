@@ -87,7 +87,7 @@ func TestDeleteLimit(t *testing.T) {
 	if testEngine.Dialect().URI().DBType == schemas.MSSQL {
 		err = session.Begin()
 		assert.NoError(t, err)
-		_, err = session.Exec("SET IDENTITY_INSERT userinfo_delete ON")
+		_, err = session.Exec("SET IDENTITY_INSERT userinfo_delete_limit ON")
 		assert.NoError(t, err)
 	}
 
