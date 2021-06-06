@@ -365,6 +365,58 @@ services:
 
 ---
 kind: pipeline
+name: test-db2
+depends_on:
+  - test-cockroach
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-db2
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
+    TEST_DB2_HOST: db2
+    TEST_DB2_PORT: 50000
+    TEST_DB2_DBNAME: xorm_test
+    TEST_DB2_USERNAME: sa
+    TEST_DB2_PASSWORD: xorm_test
+  commands:
+  - make test-db2
+  - TEST_CACHE_ENABLE=true make test-db2
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: db2
+  pull: default
+  image: store/ibmcorp/db2_developer_c:11.1.4.4-x86_64
+  environment:
+    LICENSE: accept
+    DB2INSTANCE: db2inst1
+    DB2INST1_PASSWORD: xorm_test
+    DBNAME: xorm_test
+    BLU: false
+    ENABLE_ORACLE_COMPATIBILITY: false
+    UPDATEAVAIL: NO
+    TO_CREATE_SAMPLEDB: false
+    REPODB: false
+    IS_OSXFS: true
+    PERSISTENT_HOME: true
+    HADR_ENABLED: false
+    ETCD_ENDPOINT:
+    ETCD_USERNAME:
+    ETCD_PASSWORD:
+
+---
+kind: pipeline
 name: merge_coverage
 depends_on:
   - test-mysql
@@ -374,6 +426,7 @@ depends_on:
   - test-mssql
   - test-tidb
   - test-cockroach
+  - test-db2
 trigger:
   ref:
   - refs/heads/master
