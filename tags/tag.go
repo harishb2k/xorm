@@ -5,6 +5,7 @@
 package tags
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -102,28 +103,29 @@ type Handler func(ctx *Context) error
 var (
 	// defaultTagHandlers enumerates all the default tag handler
 	defaultTagHandlers = map[string]Handler{
-		"-":        IgnoreHandler,
-		"<-":       OnlyFromDBTagHandler,
-		"->":       OnlyToDBTagHandler,
-		"PK":       PKTagHandler,
-		"NULL":     NULLTagHandler,
-		"NOT":      NotTagHandler,
-		"AUTOINCR": AutoIncrTagHandler,
-		"DEFAULT":  DefaultTagHandler,
-		"CREATED":  CreatedTagHandler,
-		"UPDATED":  UpdatedTagHandler,
-		"DELETED":  DeletedTagHandler,
-		"VERSION":  VersionTagHandler,
-		"UTC":      UTCTagHandler,
-		"LOCAL":    LocalTagHandler,
-		"NOTNULL":  NotNullTagHandler,
-		"INDEX":    IndexTagHandler,
-		"UNIQUE":   UniqueTagHandler,
-		"CACHE":    CacheTagHandler,
-		"NOCACHE":  NoCacheTagHandler,
-		"COMMENT":  CommentTagHandler,
-		"EXTENDS":  ExtendsTagHandler,
-		"UNSIGNED": UnsignedTagHandler,
+		"-":          IgnoreHandler,
+		"<-":         OnlyFromDBTagHandler,
+		"->":         OnlyToDBTagHandler,
+		"PK":         PKTagHandler,
+		"NULL":       NULLTagHandler,
+		"NOT":        NotTagHandler,
+		"AUTOINCR":   AutoIncrTagHandler,
+		"DEFAULT":    DefaultTagHandler,
+		"CREATED":    CreatedTagHandler,
+		"UPDATED":    UpdatedTagHandler,
+		"DELETED":    DeletedTagHandler,
+		"VERSION":    VersionTagHandler,
+		"UTC":        UTCTagHandler,
+		"LOCAL":      LocalTagHandler,
+		"NOTNULL":    NotNullTagHandler,
+		"INDEX":      IndexTagHandler,
+		"UNIQUE":     UniqueTagHandler,
+		"CACHE":      CacheTagHandler,
+		"NOCACHE":    NoCacheTagHandler,
+		"COMMENT":    CommentTagHandler,
+		"EXTENDS":    ExtendsTagHandler,
+		"UNSIGNED":   UnsignedTagHandler,
+		"BELONGS_TO": BelongsToTagHandler,
 	}
 )
 
@@ -395,6 +397,47 @@ func CacheTagHandler(ctx *Context) error {
 func NoCacheTagHandler(ctx *Context) error {
 	if !ctx.hasNoCacheTag {
 		ctx.hasNoCacheTag = true
+	}
+	return nil
+}
+
+// BelongsToTagHandler describes belongs_to tag handler
+func BelongsToTagHandler(ctx *Context) error {
+	if !isStruct(ctx.fieldValue.Type()) {
+		return errors.New("Tag belongs_to cannot be applied on non-struct field")
+	}
+
+	ctx.col.AssociateType = core.AssociateBelongsTo
+	var t reflect.Value
+	if ctx.fieldValue.Kind() == reflect.Struct {
+		t = ctx.fieldValue
+	} else {
+		if ctx.fieldValue.Type().Kind() == reflect.Ptr && ctx.fieldValue.Type().Elem().Kind() == reflect.Struct {
+			if ctx.fieldValue.IsNil() {
+				t = reflect.New(ctx.fieldValue.Type().Elem()).Elem()
+			} else {
+				t = ctx.fieldValue
+			}
+		} else {
+			return errors.New("Only struct or ptr to struct field could add belongs_to flag")
+		}
+	}
+
+	belongsT, err := ctx.engine.mapType(ctx.parsingTables, t)
+	if err != nil {
+		return err
+	}
+	pks := belongsT.PKColumns()
+	if len(pks) != 1 {
+		panic("unsupported non or composited primary key cascade")
+		return errors.New("blongs_to only should be as a tag of table has one primary key")
+	}
+
+	ctx.col.AssociateTable = belongsT
+	ctx.col.SQLType = pks[0].SQLType
+
+	if len(ctx.col.Name) == 0 {
+		ctx.col.Name = ctx.engine.ColumnMapper.Obj2Table(ctx.col.FieldName) + "_id"
 	}
 	return nil
 }
