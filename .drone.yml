@@ -325,7 +325,7 @@ services:
 - name: cockroach
   image: cockroachdb/cockroach:v21.1.2
   commands:
-  - /cockroach/cockroach start --insecure
+  - /cockroach/cockroach start-single-node --insecure
 
 ---
 kind: pipeline
