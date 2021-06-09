@@ -766,3 +766,25 @@ func TestGetNil(t *testing.T) {
 	assert.True(t, errors.Is(err, xorm.ErrObjectIsNil))
 	assert.False(t, has)
 }
+
+func TestGetTime(t *testing.T) {
+	type GetTimeStruct struct {
+		Id         int64
+		CreateTime time.Time
+	}
+
+	assert.NoError(t, PrepareEngine())
+	assertSync(t, new(GetTimeStruct))
+
+	var gts = GetTimeStruct{
+		CreateTime: time.Now(),
+	}
+	_, err := testEngine.Insert(&gts)
+	assert.NoError(t, err)
+
+	var gn time.Time
+	has, err := testEngine.Table("get_time_struct").Cols(colMapper.Obj2Table("CreateTime")).Get(&gn)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, gts.CreateTime.Format(time.RFC3339), gn.Format(time.RFC3339))
+}

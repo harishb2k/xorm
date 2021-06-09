@@ -50,7 +50,8 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		return false, ErrObjectIsNil
 	}
 
-	if beanValue.Elem().Kind() == reflect.Struct {
+	_, isTimeStruct := bean.(*time.Time)
+	if beanValue.Elem().Kind() == reflect.Struct && !isTimeStruct {
 		if err := session.statement.SetRefBean(bean); err != nil {
 			return false, err
 		}
