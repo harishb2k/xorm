@@ -262,3 +262,25 @@ func TestGetColumns(t *testing.T) {
 	assert.Equal(t, comment, hasComment)
 	assert.Zero(t, noComment)
 }
+
+func TestIndex(t *testing.T) {
+	assert.NoError(t, PrepareEngine())
+
+	if testEngine.Dialect().URI().DBType != schemas.POSTGRES {
+		t.Skip()
+		return
+	}
+
+	type Machine struct {
+		Id  int64
+		Lat float64
+		Lng float64
+	}
+
+	assertSync(t, new(Machine))
+
+	_, err := testEngine.Exec("CREATE INDEX ll_idx on machine USING gist(ll_to_earth(lat, lng));")
+	assert.NoError(t, err)
+
+	assertSync(t, new(Machine))
+}
