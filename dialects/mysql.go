@@ -714,6 +714,9 @@ func (p *mysqlDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.Colum
 		case *sql.NullTime:
 			v2 = append(v2, &sql.NullString{})
 			turnBackIdxes = append(turnBackIdxes, i)
+		case bool:
+			v2 = append(v2, new(bool))
+			turnBackIdxes = append(turnBackIdxes, i)
 		default:
 			v2 = append(v2, scanResults[i])
 		}
@@ -744,6 +747,9 @@ func (p *mysqlDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.Colum
 			}
 			t.Time = *dt
 			t.Valid = true
+		case *bool:
+			var s = *(v2[i].(*bool))
+			*t = s
 		}
 	}
 	return nil

@@ -68,7 +68,7 @@ func TestQueryString2(t *testing.T) {
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 2, len(records[0]))
 	assert.Equal(t, "1", records[0]["id"])
-	assert.True(t, "0" == records[0]["msg"] || "false" == records[0]["msg"])
+	assert.True(t, "0" == records[0]["msg"] || "false" == records[0]["msg"], records[0])
 }
 
 func toString(i interface{}) string {
