@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"testing"
@@ -72,30 +73,36 @@ func TestQueryString2(t *testing.T) {
 }
 
 func toString(i interface{}) string {
-	switch i.(type) {
+	switch t := i.(type) {
 	case []byte:
-		return string(i.([]byte))
+		return string(t)
 	case string:
-		return i.(string)
+		return t
 	}
 	return fmt.Sprintf("%v", i)
 }
 
 func toInt64(i interface{}) int64 {
-	switch i.(type) {
+	switch t := i.(type) {
 	case []byte:
 		n, _ := strconv.ParseInt(string(i.([]byte)), 10, 64)
 		return n
 	case int:
-		return int64(i.(int))
+		return int64(t)
+	case int32:
+		return int64(t)
 	case int64:
-		return i.(int64)
+		return t
+	case *sql.NullInt64:
+		return t.Int64
+	case *sql.NullInt32:
+		return int64(t.Int32)
 	}
 	return 0
 }
 
 func toFloat64(i interface{}) float64 {
-	switch i.(type) {
+	switch t := i.(type) {
 	case []byte:
 		n, _ := strconv.ParseFloat(string(i.([]byte)), 64)
 		return n
@@ -103,6 +110,12 @@ func toFloat64(i interface{}) float64 {
 		return i.(float64)
 	case float32:
 		return float64(i.(float32))
+	case *sql.NullInt32:
+		return float64(t.Int32)
+	case *sql.NullInt64:
+		return float64(t.Int64)
+	case *sql.NullFloat64:
+		return t.Float64
 	}
 	return 0
 }

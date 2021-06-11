@@ -95,7 +95,7 @@ func (session *Session) QueryString(sqlOrArgs ...interface{}) ([]map[string]stri
 	}
 	defer rows.Close()
 
-	return session.rows2Strings(rows)
+	return session.engine.rows2Strings(rows)
 }
 
 // QuerySliceString runs a raw sql and return records as [][]string

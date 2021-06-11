@@ -446,6 +446,31 @@ func formatColumnValue(dbLocation *time.Location, dstDialect dialects.Dialect, d
 		return "NULL"
 	}
 
+	switch t := d.(type) {
+	case *sql.NullInt64:
+		if t.Valid {
+			return fmt.Sprintf("%d", t.Int64)
+		}
+		return "NULL"
+	case *sql.NullTime:
+		if t.Valid {
+			return fmt.Sprintf("'%s'", t.Time.Format("2006-1-02 15:04:05"))
+		}
+		return "NULL"
+	case *sql.NullString:
+		if t.Valid {
+			return "'" + strings.Replace(t.String, "'", "''", -1) + "'"
+		}
+		return "NULL"
+	case *sql.NullInt32:
+		if t.Valid {
+			return fmt.Sprintf("%d", t.Int32)
+		}
+		return "NULL"
+	}
+
+	fmt.Printf("%#v------%v\n", d, col.Name)
+
 	if dq, ok := d.(bool); ok && (dstDialect.URI().DBType == schemas.SQLITE ||
 		dstDialect.URI().DBType == schemas.MSSQL) {
 		if dq {
@@ -604,6 +629,7 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 
 		cols := table.ColumnsSeq()
 		dstCols := dstTable.ColumnsSeq()
+		dstColumns := dstTable.Columns()
 
 		colNames := engine.dialect.Quoter().Join(cols, ", ")
 		destColNames := dstDialect.Quoter().Join(dstCols, ", ")
@@ -614,37 +640,29 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		}
 		defer rows.Close()
 
-		if table.Type != nil {
-			sess := engine.NewSession()
-			defer sess.Close()
-			for rows.Next() {
-				beanValue := reflect.New(table.Type)
-				bean := beanValue.Interface()
-				fields, err := rows.Columns()
-				if err != nil {
-					return err
-				}
-				scanResults, err := sess.row2Slice(rows, fields, bean)
-				if err != nil {
-					return err
-				}
+		coltypes, err := rows.ColumnTypes()
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			_, err = io.WriteString(w, "INSERT INTO "+dstDialect.Quoter().Quote(dstTableName)+" ("+destColNames+") VALUES (")
+			if err != nil {
+				return err
+			}
 
-				dataStruct := utils.ReflectValue(bean)
-				_, err = sess.slice2Bean(scanResults, fields, bean, &dataStruct, table)
-				if err != nil {
+			row, err := engine.scanInterfaceResults(rows, coltypes, dstCols)
+			if err != nil {
+				return err
+			}
+
+			for i, cell := range row {
+				s := engine.formatColumnValue(dstDialect, cell, dstColumns[i])
+				if _, err = io.WriteString(w, s); err != nil {
 					return err
 				}
-
-				_, err = io.WriteString(w, "INSERT INTO "+dstDialect.Quoter().Quote(dstTableName)+" ("+destColNames+") VALUES (")
-				if err != nil {
-					return err
-				}
-
-				var temp string
-				for _, d := range dstCols {
-					col := table.GetColumn(d)
-					if col == nil {
-						return errors.New("unknown column error")
+				if i < len(row)-1 {
+					if _, err = io.WriteString(w, ","); err != nil {
+						return err
 					}
 
 					field := dataStruct.FieldByIndex(col.FieldIndex)
@@ -655,25 +673,6 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 					return err
 				}
 			}
-		} else {
-			for rows.Next() {
-				dest := make([]interface{}, len(cols))
-				err = rows.ScanSlice(&dest)
-				if err != nil {
-					return err
-				}
-
-				_, err = io.WriteString(w, "INSERT INTO "+dstDialect.Quoter().Quote(dstTableName)+" ("+destColNames+") VALUES (")
-				if err != nil {
-					return err
-				}
-
-				var temp string
-				for i, d := range dest {
-					col := table.GetColumn(cols[i])
-					if col == nil {
-						return errors.New("unknow column error")
-					}
 
 					temp += "," + formatColumnValue(engine.DatabaseTZ, dstDialect, d, col)
 				}
