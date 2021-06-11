@@ -462,7 +462,6 @@ func convertAssign(dest, src interface{}, originalLocation *time.Location, conve
 	}
 
 	var sv reflect.Value
-
 	switch d := dest.(type) {
 	case *string:
 		sv = reflect.ValueOf(src)
@@ -496,7 +495,7 @@ func convertAssign(dest, src interface{}, originalLocation *time.Location, conve
 
 func convertAssignV(dpv reflect.Value, src interface{}, originalLocation, convertedLocation *time.Location) error {
 	if dpv.Kind() != reflect.Ptr {
-		return errors.New("destination not a pointer")
+		return fmt.Errorf("destination %s not a pointer", dpv.Kind())
 	}
 	if dpv.IsNil() {
 		return errNilPtr
