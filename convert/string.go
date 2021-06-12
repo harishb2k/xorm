@@ -10,8 +10,8 @@ import (
 	"strconv"
 )
 
-// ConvertAssignString converts an interface to string
-func ConvertAssignString(v interface{}) (string, error) {
+// Interface2String converts an interface to string
+func Interface2String(v interface{}) (string, error) {
 	if v == nil {
 		return "", nil
 	}

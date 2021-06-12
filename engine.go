@@ -82,7 +82,12 @@ func newEngine(driverName, dataSourceName string, dialect dialects.Dialect, db *
 		dataSourceName: dataSourceName,
 		db:             db,
 		logSessionID:   false,
-		DatabaseTZ:     time.Local,
+	}
+
+	if dialect.URI().DBType == schemas.SQLITE {
+		engine.DatabaseTZ = time.UTC
+	} else {
+		engine.DatabaseTZ = time.Local
 	}
 
 	logger := log.NewSimpleLogger(os.Stdout)
@@ -468,8 +473,6 @@ func formatColumnValue(dbLocation *time.Location, dstDialect dialects.Dialect, d
 		}
 		return "NULL"
 	}
-
-	fmt.Printf("%#v------%v\n", d, col.Name)
 
 	if dq, ok := d.(bool); ok && (dstDialect.URI().DBType == schemas.SQLITE ||
 		dstDialect.URI().DBType == schemas.MSSQL) {
@@ -1295,6 +1298,14 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
 	return session.Import(r)
+}
+
+func (engine *Engine) columnTime(col *schemas.Column, t *time.Time) interface{} {
+	var tz = engine.DatabaseTZ
+	if !col.DisableTimeZone && col.TimeZone != nil {
+		tz = col.TimeZone
+	}
+	return t.In(tz)
 }
 
 // nowTime return current time

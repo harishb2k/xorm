@@ -562,6 +562,11 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 			if err != nil {
 				return colNames, args, err
 			}
+			if t, ok := arg.(time.Time); ok {
+				arg = session.engine.columnTime(col, &t)
+			} else if t, ok := arg.(*time.Time); ok {
+				arg = session.engine.columnTime(col, t)
+			}
 			args = append(args, arg)
 		}
 
