@@ -1201,7 +1201,7 @@ func TestTagTime(t *testing.T) {
 	has, err = testEngine.Table("tag_u_t_c_struct").Cols("created").Get(&tm)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),
+	assert.EqualValues(t, s.Created.Format("2006-01-02 15:04:05"),
 		strings.Replace(strings.Replace(tm, "T", " ", -1), "Z", "", -1))
 }
 

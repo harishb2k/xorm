@@ -42,6 +42,13 @@ func asString(src interface{}) string {
 		return string(v)
 	case *sql.NullString:
 		return v.String
+	case *sql.RawBytes:
+		return string(*v)
+	case *sql.NullBool:
+		if v.Valid {
+			return strconv.FormatBool(v.Bool)
+		}
+		return ""
 	case *sql.NullInt32:
 		return fmt.Sprintf("%d", v.Int32)
 	case *sql.NullInt64:
@@ -236,6 +243,7 @@ func asBytes(buf []byte, rv reflect.Value) (b []byte, ok bool) {
 // An error is returned if the copy would result in loss of information.
 // dest should be a pointer type.
 func convertAssign(dest, src interface{}, originalLocation *time.Location, convertedLocation *time.Location) error {
+	fmt.Printf("======= %#v ------> %#v \n", src, dest)
 	// Common cases, without reflect.
 	switch s := src.(type) {
 	case string:
@@ -253,6 +261,17 @@ func convertAssign(dest, src interface{}, originalLocation *time.Location, conve
 			*d = []byte(s)
 			return nil
 		}
+	case int64:
+		switch d := dest.(type) {
+		case *uint64:
+			*d = uint64(s)
+			return nil
+		}
+		fmt.Println("======", src, dest)
+	case int, int32, int16, int8:
+		fmt.Println("22222222")
+	case uint, uint32, uint64, uint8, uint16:
+		fmt.Println("3333333")
 	case []byte:
 		switch d := dest.(type) {
 		case *string:
@@ -274,7 +293,6 @@ func convertAssign(dest, src interface{}, originalLocation *time.Location, conve
 			*d = cloneBytes(s)
 			return nil
 		}
-
 	case time.Time:
 		switch d := dest.(type) {
 		case *string:
@@ -527,6 +545,7 @@ func convertAssignV(dpv reflect.Value, src interface{}, originalLocation, conver
 		}
 
 		dv.Set(reflect.New(dv.Type().Elem()))
+		fmt.Println("333333")
 		return convertAssign(dv.Interface(), src, originalLocation, convertedLocation)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i64, err := asInt64(src)
@@ -592,7 +611,6 @@ func asKind(vv reflect.Value, tp reflect.Type) (interface{}, error) {
 			}
 			return v, nil
 		}
-
 	}
 	return nil, fmt.Errorf("unsupported primary key type: %v, %v", tp, vv)
 }

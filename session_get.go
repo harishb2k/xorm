@@ -124,6 +124,31 @@ var (
 	conversionType            = reflect.TypeOf(&conversionTypePlaceHolder).Elem()
 )
 
+func (session *Session) genScanResultsByBeanStruct(bean interface{}, fields ...string) ([]interface{}, error) {
+	structV := reflect.ValueOf(bean)
+	table, err := session.engine.tagParser.ParseWithCache(structV)
+	if err != nil {
+		return nil, err
+	}
+	structV = structV.Elem()
+	var dstResults = make([]interface{}, 0, len(fields))
+	for _, field := range fields {
+		var fieldName string
+		for _, col := range table.Columns() {
+			if col.Name == field {
+				fieldName = col.FieldName
+				break
+			}
+		}
+		v := structV.FieldByName(fieldName)
+		if !v.IsValid() {
+			return nil, fmt.Errorf("get field named %v failed", field)
+		}
+		dstResults = append(dstResults, v.Addr())
+	}
+	return dstResults, nil
+}
+
 func (session *Session) nocacheGet(beanKind reflect.Kind, table *schemas.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {

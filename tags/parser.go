@@ -271,6 +271,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 		v = v.Elem()
+		fmt.Println("======3333", v)
 	}
 	if t.Kind() != reflect.Struct {
 		return nil, ErrUnsupportedType

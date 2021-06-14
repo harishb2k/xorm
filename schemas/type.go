@@ -5,6 +5,7 @@
 package schemas
 
 import (
+	"database/sql"
 	"reflect"
 	"sort"
 	"strings"
@@ -222,24 +223,28 @@ var (
 
 // !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparison
 var (
-	emptyString       string
-	boolDefault       bool
-	byteDefault       byte
-	complex64Default  complex64
-	complex128Default complex128
-	float32Default    float32
-	float64Default    float64
-	int64Default      int64
-	uint64Default     uint64
-	int32Default      int32
-	uint32Default     uint32
-	int16Default      int16
-	uint16Default     uint16
-	int8Default       int8
-	uint8Default      uint8
-	intDefault        int
-	uintDefault       uint
-	timeDefault       time.Time
+	emptyString        string
+	boolDefault        bool
+	byteDefault        byte
+	complex64Default   complex64
+	complex128Default  complex128
+	float32Default     float32
+	float64Default     float64
+	int64Default       int64
+	uint64Default      uint64
+	int32Default       int32
+	uint32Default      uint32
+	int16Default       int16
+	uint16Default      uint16
+	int8Default        int8
+	uint8Default       uint8
+	intDefault         int
+	uintDefault        uint
+	timeDefault        time.Time
+	nullInt64Default   sql.NullInt64
+	nullFloat64Default sql.NullFloat64
+	nullBoolDefault    sql.NullBool
+	nullTimeDefault    sql.NullTime
 )
 
 // enumerates all types
@@ -268,6 +273,11 @@ var (
 	BytesType  = reflect.SliceOf(ByteType)
 
 	TimeType = reflect.TypeOf(timeDefault)
+
+	NullInt64Type   = reflect.TypeOf(nullInt64Default)
+	NullFloat64Type = reflect.TypeOf(nullFloat64Default)
+	NullBoolType    = reflect.TypeOf(nullBoolDefault)
+	NullTimeType    = reflect.TypeOf(nullTimeDefault)
 )
 
 // enumerates all types
@@ -295,6 +305,9 @@ var (
 	PtrByteType   = reflect.PtrTo(ByteType)
 
 	PtrTimeType = reflect.PtrTo(TimeType)
+
+	PtrNullInt64Type   = reflect.PtrTo(NullInt64Type)
+	PtrNullFloat64Type = reflect.PtrTo(NullFloat64Type)
 )
 
 // Type2SQLType generate SQLType acorrding Go's type
@@ -326,6 +339,14 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 		st = SQLType{Varchar, 255, 0}
 	case reflect.Struct:
 		if t.ConvertibleTo(TimeType) {
+			st = SQLType{DateTime, 0, 0}
+		} else if t.ConvertibleTo(NullInt64Type) {
+			st = SQLType{BigInt, 0, 0}
+		} else if t.ConvertibleTo(NullFloat64Type) {
+			st = SQLType{Double, 0, 0}
+		} else if t.ConvertibleTo(NullBoolType) {
+			st = SQLType{Bool, 0, 0}
+		} else if t.ConvertibleTo(NullTimeType) {
 			st = SQLType{DateTime, 0, 0}
 		} else {
 			// TODO need to handle association struct

@@ -122,14 +122,6 @@ func value2String(rawValue *reflect.Value) (str string, err error) {
 	return
 }
 
-func value2Bytes(rawValue *reflect.Value) ([]byte, error) {
-	str, err := value2String(rawValue)
-	if err != nil {
-		return nil, err
-	}
-	return []byte(str), nil
-}
-
 func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {

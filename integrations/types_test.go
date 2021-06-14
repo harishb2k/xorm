@@ -109,6 +109,7 @@ func TestGetBytes(t *testing.T) {
 type ConvString string
 
 func (s *ConvString) FromDB(data []byte) error {
+	fmt.Printf("======= %#v,,,,,, %#v\n", s, data)
 	*s = ConvString("prefix---" + string(data))
 	return nil
 }

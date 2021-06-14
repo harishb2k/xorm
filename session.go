@@ -15,6 +15,7 @@ import (
 	"hash/crc32"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -387,9 +388,9 @@ func (session *Session) getField(dataStruct *reflect.Value, key string, table *s
 }
 
 // Cell cell is a result of one column field
-type Cell *interface{}
+type Cell interface{}
 
-func (session *Session) rows2Beans(rows *core.Rows, fields []string,
+func (session *Session) rows2Beans(rows *core.Rows, types []*sql.ColumnType, fields []string,
 	table *schemas.Table, newElemFunc func([]string) reflect.Value,
 	sliceValueSetFunc func(*reflect.Value, schemas.PK) error) error {
 	for rows.Next() {
@@ -398,7 +399,7 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string,
 		dataStruct := newValue.Elem()
 
 		// handle beforeClosures
-		scanResults, err := session.row2Slice(rows, fields, bean)
+		scanResults, err := session.row2Slice(rows, types, fields, bean)
 		if err != nil {
 			return err
 		}
@@ -417,17 +418,29 @@ func (session *Session) rows2Beans(rows *core.Rows, fields []string,
 	return nil
 }
 
-func (session *Session) row2Slice(rows *core.Rows, fields []string, bean interface{}) ([]interface{}, error) {
+func (session *Session) genScanResultsByTypes(types []*sql.ColumnType) ([]interface{}, error) {
+	scanResults := make([]interface{}, len(types))
+	for i := 0; i < len(types); i++ {
+		result, err := session.engine.driver.GenScanResult(types[i].DatabaseTypeName())
+		if err != nil {
+			return nil, err
+		}
+		scanResults[i] = result
+	}
+	return scanResults, nil
+}
+
+func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}) ([]interface{}, error) {
 	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
-	scanResults := make([]interface{}, len(fields))
-	for i := 0; i < len(fields); i++ {
-		var cell interface{}
-		scanResults[i] = &cell
+	scanResults, err := session.genScanResultsByTypes(types)
+	if err != nil {
+		return nil, err
 	}
-	if err := rows.Scan(scanResults...); err != nil {
+
+	if err := session.engine.scan(rows, types, scanResults...); err != nil {
 		return nil, err
 	}
 
@@ -436,206 +449,370 @@ func (session *Session) row2Slice(rows *core.Rows, fields []string, bean interfa
 	return scanResults, nil
 }
 
-func (session *Session) slice2Bean(scanResults []interface{}, fields []string, bean interface{}, dataStruct *reflect.Value, table *schemas.Table) (schemas.PK, error) {
-	defer func() {
-		executeAfterSet(bean, fields, scanResults)
-	}()
+var (
+	scannerTypePlaceHolder sql.Scanner
+	scannerType            = reflect.TypeOf(&scannerTypePlaceHolder).Elem()
+)
 
-	buildAfterProcessors(session, bean)
+// convertAssign converts an interface src to dst reflect.Value fieldValue
+func (session *Session) convertAssign(fieldValue *reflect.Value, columnName string, src interface{}, table *schemas.Table, pk *schemas.PK, idx int) error {
+	if fieldValue == nil {
+		return nil
+	}
+	// if row is null then ignore
+	if src == nil {
+		return nil
+	}
 
-	var tempMap = make(map[string]int)
-	var pk schemas.PK
-	for ii, key := range fields {
-		var idx int
-		var ok bool
-		var lKey = strings.ToLower(key)
-		if idx, ok = tempMap[lKey]; !ok {
-			idx = 0
-		} else {
-			idx = idx + 1
-		}
-		tempMap[lKey] = idx
+	rawValue := reflect.Indirect(reflect.ValueOf(src))
+	if rawValue.Interface() == nil {
+		return nil
+	}
 
-		fieldValue, err := session.getField(dataStruct, key, table, idx)
-		if err != nil {
-			if !strings.Contains(err.Error(), "is not valid") {
-				session.engine.logger.Warnf("%v", err)
-			}
-			continue
-		}
-		if fieldValue == nil {
-			continue
-		}
-		rawValue := reflect.Indirect(reflect.ValueOf(scanResults[ii]))
+	fmt.Printf("----- %v <------ %v \n", fieldValue.Type(), rawValue.Type())
+	if fieldValue.Type() == rawValue.Type() {
+		fieldValue.Set(rawValue)
+		return nil
+	}
 
-		// if row is null then ignore
-		if rawValue.Interface() == nil {
-			continue
+	if fieldValue.CanAddr() {
+		if scanner, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+			fmt.Printf("%s, ===========00000000000 %#v <----- %#v \n", columnName, fieldValue.Addr().Interface(), src)
+			return scanner.Scan(src)
 		}
 
-		if fieldValue.CanAddr() {
-			if structConvert, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
-				if data, err := value2Bytes(&rawValue); err == nil {
-					if err := structConvert.FromDB(data); err != nil {
-						return nil, err
-					}
-				} else {
-					return nil, err
+		if structConvert, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
+			switch t := src.(type) {
+			case *sql.RawBytes:
+				if err := structConvert.FromDB([]byte(*t)); err != nil {
+					return err
 				}
-				continue
+			case *sql.NullString:
+				if t.Valid {
+					if err := structConvert.FromDB([]byte(t.String)); err != nil {
+						return err
+					}
+				}
+			default:
+				return fmt.Errorf("unsupported type: %#v on column %v", t, columnName)
 			}
+			return nil
+		}
+	}
+
+	if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
+		if scanner, ok := fieldValue.Interface().(sql.Scanner); ok {
+			fmt.Println("===========111111111111")
+			return scanner.Scan(src)
 		}
 
-		if _, ok := fieldValue.Interface().(convert.Conversion); ok {
-			if data, err := value2Bytes(&rawValue); err == nil {
-				if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+		switch t := src.(type) {
+		case *sql.RawBytes:
+			if fieldValue.IsNil() {
+				fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+				structConvert = fieldValue.Interface().(convert.Conversion)
+			}
+			if err := structConvert.FromDB([]byte(*t)); err != nil {
+				return err
+			}
+		case *sql.NullString:
+			if t.Valid {
+				if fieldValue.IsNil() {
 					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+					structConvert = fieldValue.Interface().(convert.Conversion)
 				}
-				fieldValue.Interface().(convert.Conversion).FromDB(data)
-			} else {
-				return nil, err
+				if err := structConvert.FromDB([]byte(t.String)); err != nil {
+					return err
+				}
 			}
-			continue
+		default:
+			return fmt.Errorf("unsupported type: %#v", t)
 		}
+		return nil
+	}
 
-		rawValueType := reflect.TypeOf(rawValue.Interface())
-		vv := reflect.ValueOf(rawValue.Interface())
-		col := table.GetColumnIdx(key, idx)
-		if col.IsPrimaryKey {
-			pk = append(pk, rawValue.Interface())
-		}
-		fieldType := fieldValue.Type()
-		hasAssigned := false
+	rawValueType := reflect.TypeOf(rawValue.Interface())
+	vv := reflect.ValueOf(rawValue.Interface())
+	col := table.GetColumnIdx(columnName, idx)
+	if col.IsPrimaryKey {
+		*pk = append(*pk, rawValue.Interface())
+	}
+	fieldType := fieldValue.Type()
+	hasAssigned := false
 
-		if col.IsJSON {
-			var bs []byte
+	if col.IsJSON {
+		var bs []byte
+		switch t := src.(type) {
+		case *sql.NullString:
+			if t.Valid {
+				bs = []byte(t.String)
+			}
+		case *sql.RawBytes:
+			bs = *t
+		default:
 			if rawValueType.Kind() == reflect.String {
 				bs = []byte(vv.String())
 			} else if rawValueType.ConvertibleTo(schemas.BytesType) {
 				bs = vv.Bytes()
 			} else {
-				return nil, fmt.Errorf("unsupported database data type: %s %v", key, rawValueType.Kind())
+				return fmt.Errorf("unsupported database data type: %s %v ---> %#v", columnName, rawValueType.Kind(), src)
 			}
-
-			hasAssigned = true
-
-			if len(bs) > 0 {
-				if fieldType.Kind() == reflect.String {
-					fieldValue.SetString(string(bs))
-					continue
-				}
-				if fieldValue.CanAddr() {
-					err := json.DefaultJSONHandler.Unmarshal(bs, fieldValue.Addr().Interface())
-					if err != nil {
-						return nil, err
-					}
-				} else {
-					x := reflect.New(fieldType)
-					err := json.DefaultJSONHandler.Unmarshal(bs, x.Interface())
-					if err != nil {
-						return nil, err
-					}
-					fieldValue.Set(x.Elem())
-				}
-			}
-
-			continue
 		}
 
-		switch fieldType.Kind() {
-		case reflect.Complex64, reflect.Complex128:
-			// TODO: reimplement this
-			var bs []byte
-			if rawValueType.Kind() == reflect.String {
-				bs = []byte(vv.String())
-			} else if rawValueType.ConvertibleTo(schemas.BytesType) {
-				bs = vv.Bytes()
+		if len(bs) > 0 {
+			if fieldType.Kind() == reflect.String {
+				fieldValue.SetString(string(bs))
+				return nil
 			}
+			if fieldValue.CanAddr() {
+				err := json.DefaultJSONHandler.Unmarshal(bs, fieldValue.Addr().Interface())
+				if err != nil {
+					return err
+				}
+			} else {
+				x := reflect.New(fieldType)
+				err := json.DefaultJSONHandler.Unmarshal(bs, x.Interface())
+				if err != nil {
+					return err
+				}
+				fieldValue.Set(x.Elem())
+			}
+		}
+		return nil
+	}
 
+	var kind = fieldType.Kind()
+	if reflect.Ptr == kind {
+		kind = fieldType.Elem().Kind()
+	}
+
+	switch kind {
+	case reflect.Complex64, reflect.Complex128:
+		// TODO: reimplement this
+		var bs []byte
+		if rawValueType.Kind() == reflect.String {
+			bs = []byte(vv.String())
+		} else if rawValueType.ConvertibleTo(schemas.BytesType) {
+			bs = vv.Bytes()
+		}
+
+		if len(bs) > 0 {
+			if fieldValue.CanAddr() {
+				err := json.DefaultJSONHandler.Unmarshal(bs, fieldValue.Addr().Interface())
+				if err != nil {
+					return err
+				}
+			} else {
+				x := reflect.New(fieldType)
+				err := json.DefaultJSONHandler.Unmarshal(bs, x.Interface())
+				if err != nil {
+					return err
+				}
+				fieldValue.Set(x.Elem())
+			}
+		}
+		return nil
+	case reflect.Slice, reflect.Array:
+		switch t := src.(type) {
+		case *sql.NullString:
 			hasAssigned = true
-			if len(bs) > 0 {
-				if fieldValue.CanAddr() {
-					err := json.DefaultJSONHandler.Unmarshal(bs, fieldValue.Addr().Interface())
-					if err != nil {
-						return nil, err
-					}
-				} else {
-					x := reflect.New(fieldType)
-					err := json.DefaultJSONHandler.Unmarshal(bs, x.Interface())
-					if err != nil {
-						return nil, err
-					}
-					fieldValue.Set(x.Elem())
+			fmt.Printf("====== %#v <-------- %#v \n", fieldValue.Interface(), t)
+			if t.Valid {
+				if fieldType.Elem().Kind() == reflect.Uint8 {
+					fieldValue.SetBytes([]byte(t.String))
 				}
 			}
+		}
+		switch rawValueType.Kind() {
 		case reflect.Slice, reflect.Array:
-			switch rawValueType.Kind() {
-			case reflect.Slice, reflect.Array:
-				switch rawValueType.Elem().Kind() {
-				case reflect.Uint8:
-					if fieldType.Elem().Kind() == reflect.Uint8 {
-						hasAssigned = true
-						if col.SQLType.IsText() {
-							x := reflect.New(fieldType)
-							err := json.DefaultJSONHandler.Unmarshal(vv.Bytes(), x.Interface())
-							if err != nil {
-								return nil, err
+			switch rawValueType.Elem().Kind() {
+			case reflect.Uint8:
+				if fieldType.Elem().Kind() == reflect.Uint8 {
+					hasAssigned = true
+					if col.SQLType.IsText() {
+						x := reflect.New(fieldType)
+						err := json.DefaultJSONHandler.Unmarshal(vv.Bytes(), x.Interface())
+						if err != nil {
+							return err
+						}
+						fieldValue.Set(x.Elem())
+					} else {
+						if fieldValue.Len() > 0 {
+							for i := 0; i < fieldValue.Len(); i++ {
+								if i < vv.Len() {
+									fieldValue.Index(i).Set(vv.Index(i))
+								}
 							}
-							fieldValue.Set(x.Elem())
 						} else {
-							if fieldValue.Len() > 0 {
-								for i := 0; i < fieldValue.Len(); i++ {
-									if i < vv.Len() {
-										fieldValue.Index(i).Set(vv.Index(i))
-									}
-								}
-							} else {
-								for i := 0; i < vv.Len(); i++ {
-									fieldValue.Set(reflect.Append(*fieldValue, vv.Index(i)))
-								}
+							for i := 0; i < vv.Len(); i++ {
+								fieldValue.Set(reflect.Append(*fieldValue, vv.Index(i)))
 							}
 						}
 					}
 				}
 			}
-		case reflect.String:
-			if rawValueType.Kind() == reflect.String {
-				hasAssigned = true
-				fieldValue.SetString(vv.String())
+		}
+	case reflect.String:
+		switch t := src.(type) {
+		case *sql.NullString:
+			if t.Valid {
+				fieldValue.SetString(t.String)
 			}
-		case reflect.Bool:
-			if rawValueType.Kind() == reflect.Bool {
-				hasAssigned = true
-				fieldValue.SetBool(vv.Bool())
+			return nil
+		case sql.NullString:
+			if t.Valid {
+				fieldValue.SetString(t.String)
 			}
+			return nil
+		case *sql.NullTime:
+			if t.Valid {
+				fieldValue.SetString(t.Time.In(session.engine.TZLocation).Format("2006-01-02 15:04:05"))
+			}
+			return nil
+		}
+		if rawValueType.Kind() == reflect.String {
+			fieldValue.SetString(vv.String())
+			return nil
+		}
+	case reflect.Bool:
+		switch t := src.(type) {
+		case *sql.NullBool:
+			if t.Valid {
+				fieldValue.SetBool(t.Bool)
+			}
+			return nil
+		case *sql.NullInt64:
+			if t.Valid {
+				fieldValue.SetBool(t.Int64 > 0)
+			}
+			return nil
+		}
+		if rawValueType.Kind() == reflect.Bool {
+			fieldValue.SetBool(vv.Bool())
+			return nil
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch t := src.(type) {
+		case *sql.NullInt64:
+			if t.Valid {
+				fieldValue.SetInt(t.Int64)
+			}
+			return nil
+		case *sql.NullString:
+			if t.Valid {
+				tv, _ := strconv.ParseInt(t.String, 10, 64)
+				fieldValue.SetInt(tv)
+			}
+			return nil
+		}
+		switch rawValueType.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			switch rawValueType.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				hasAssigned = true
-				fieldValue.SetInt(vv.Int())
+			fieldValue.SetInt(vv.Int())
+			return nil
+		default:
+			return fmt.Errorf("unsupported convert %v to %v", rawValueType.Kind(), fieldType.Kind())
+		}
+	case reflect.Float32, reflect.Float64:
+		switch t := src.(type) {
+		case *sql.NullFloat64:
+			if t.Valid {
+				fieldValue.SetFloat(t.Float64)
 			}
-		case reflect.Float32, reflect.Float64:
-			switch rawValueType.Kind() {
-			case reflect.Float32, reflect.Float64:
-				hasAssigned = true
-				fieldValue.SetFloat(vv.Float())
-			}
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-			switch rawValueType.Kind() {
-			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-				hasAssigned = true
-				fieldValue.SetUint(vv.Uint())
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				hasAssigned = true
-				fieldValue.SetUint(uint64(vv.Int()))
-			}
-		case reflect.Struct:
-			if fieldType.ConvertibleTo(schemas.TimeType) {
-				dbTZ := session.engine.DatabaseTZ
-				if col.TimeZone != nil {
-					dbTZ = col.TimeZone
+			return nil
+		case *sql.NullString:
+			if t.Valid {
+				vv, err := strconv.ParseFloat(t.String, 10)
+				if err != nil {
+					return err
 				}
+				fieldValue.SetFloat(vv)
+			}
+			return nil
+		}
+		switch rawValueType.Kind() {
+		case reflect.Float32, reflect.Float64:
+			fieldValue.SetFloat(vv.Float())
+			return nil
+		}
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		switch t := src.(type) {
+		case *sql.NullInt64:
+			if t.Valid {
+				fieldValue.SetUint(uint64(t.Int64))
+			}
+			return nil
+		case *sql.NullString:
+			if t.Valid {
+				vv, err := strconv.ParseUint(t.String, 10, 64)
+				if err != nil {
+					return err
+				}
+				fieldValue.SetUint(vv)
+			}
+			return nil
+		}
 
+		switch rawValueType.Kind() {
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+			fieldValue.SetUint(vv.Uint())
+			return nil
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			hasAssigned = true
+			return nil
+		}
+	case reflect.Struct:
+		if fieldType.ConvertibleTo(schemas.TimeType) {
+			dbTZ := session.engine.DatabaseTZ
+			if col.TimeZone != nil {
+				dbTZ = col.TimeZone
+			}
+
+			fmt.Printf("99999999 %#v\n", src)
+
+			switch d := src.(type) {
+			case []byte:
+				hasAssigned = true
+				t, err := session.byte2Time(col, d)
+				if err != nil {
+					session.engine.logger.Errorf("byte2Time error: %v", err)
+					hasAssigned = false
+				} else {
+					fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+				}
+			case string:
+				hasAssigned = true
+				t, err := session.str2Time(col, d)
+				if err != nil {
+					session.engine.logger.Errorf("byte2Time error: %v", err)
+					hasAssigned = false
+				} else {
+					fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+				}
+			case *sql.NullInt64:
+				hasAssigned = true
+				if d.Valid {
+					t := time.Unix(d.Int64, 0).In(session.engine.TZLocation)
+					fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+				}
+			case *sql.NullString:
+				hasAssigned = true
+				if d.Valid {
+					t, err := session.str2Time(col, d.String)
+					if err != nil {
+						session.engine.logger.Errorf("byte2Time error: %v", err)
+						hasAssigned = false
+					} else {
+						fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
+					}
+				}
+			case *sql.NullTime:
+				hasAssigned = true
+				if d.Valid {
+					fieldValue.Set(reflect.ValueOf(d.Time).Convert(fieldType))
+				}
+			case nil:
+				hasAssigned = true
+			default:
 				if rawValueType == schemas.TimeType {
 					hasAssigned = true
 
@@ -644,7 +821,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					z, _ := t.Zone()
 					// set new location if database don't save timezone or give an incorrect timezone
 					if len(z) == 0 || t.Year() == 0 || t.Location().String() != dbTZ.String() { // !nashtsai! HACK tmp work around for lib/pq doesn't properly time with location
-						session.engine.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", key, t, z, *t.Location())
+						session.engine.logger.Debugf("empty zone key[%v] : %v | zone: %v | location: %+v\n", columnName, t, z, *t.Location())
 						t = time.Date(t.Year(), t.Month(), t.Day(), t.Hour(),
 							t.Minute(), t.Second(), t.Nanosecond(), dbTZ)
 					}
@@ -658,216 +835,123 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					t := time.Unix(vv.Int(), 0).In(session.engine.TZLocation)
 					fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
 				} else {
-					if d, ok := vv.Interface().([]uint8); ok {
-						hasAssigned = true
-						t, err := session.byte2Time(col, d)
-						if err != nil {
-							session.engine.logger.Errorf("byte2Time error: %v", err)
-							hasAssigned = false
-						} else {
-							fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
-						}
-					} else if d, ok := vv.Interface().(string); ok {
-						hasAssigned = true
-						t, err := session.str2Time(col, d)
-						if err != nil {
-							session.engine.logger.Errorf("byte2Time error: %v", err)
-							hasAssigned = false
-						} else {
-							fieldValue.Set(reflect.ValueOf(t).Convert(fieldType))
-						}
-					} else {
-						return nil, fmt.Errorf("rawValueType is %v, value is %v", rawValueType, vv.Interface())
-					}
+					return fmt.Errorf("rawValueType is %v, value is %v", rawValueType, src)
 				}
-			} else if nulVal, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
-				// !<winxxp>! 增加支持sql.Scanner接口的结构，如sql.NullString
+			}
+		} else if nulVal, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+			if err := nulVal.Scan(src); err != nil {
+				return fmt.Errorf("sql.Sanner error: %v", err)
+			}
+			return nil
+		} else if col.IsJSON {
+			if rawValueType.Kind() == reflect.String {
 				hasAssigned = true
-				if err := nulVal.Scan(vv.Interface()); err != nil {
-					session.engine.logger.Errorf("sql.Sanner error: %v", err)
-					hasAssigned = false
-				}
-			} else if col.IsJSON {
-				if rawValueType.Kind() == reflect.String {
-					hasAssigned = true
-					x := reflect.New(fieldType)
-					if len([]byte(vv.String())) > 0 {
-						err := json.DefaultJSONHandler.Unmarshal([]byte(vv.String()), x.Interface())
-						if err != nil {
-							return nil, err
-						}
-						fieldValue.Set(x.Elem())
+				x := reflect.New(fieldType)
+				if len([]byte(vv.String())) > 0 {
+					err := json.DefaultJSONHandler.Unmarshal([]byte(vv.String()), x.Interface())
+					if err != nil {
+						return err
 					}
-				} else if rawValueType.Kind() == reflect.Slice {
-					hasAssigned = true
-					x := reflect.New(fieldType)
-					if len(vv.Bytes()) > 0 {
-						err := json.DefaultJSONHandler.Unmarshal(vv.Bytes(), x.Interface())
-						if err != nil {
-							return nil, err
-						}
-						fieldValue.Set(x.Elem())
+					fieldValue.Set(x.Elem())
+				}
+			} else if rawValueType.Kind() == reflect.Slice {
+				hasAssigned = true
+				x := reflect.New(fieldType)
+				if len(vv.Bytes()) > 0 {
+					err := json.DefaultJSONHandler.Unmarshal(vv.Bytes(), x.Interface())
+					if err != nil {
+						return err
 					}
+					fieldValue.Set(x.Elem())
 				}
-			} else if session.statement.UseCascade {
-				table, err := session.engine.tagParser.ParseWithCache(*fieldValue)
-				if err != nil {
-					return nil, err
-				}
+			}
+		} else if session.statement.UseCascade {
+			fmt.Printf("5565666======= %#v \n", *fieldValue)
+			table, err := session.engine.tagParser.ParseWithCache(*fieldValue)
+			if err != nil {
+				return err
+			}
 
-				hasAssigned = true
-				if len(table.PrimaryKeys) != 1 {
-					return nil, errors.New("unsupported non or composited primary key cascade")
+			hasAssigned = true
+			if len(table.PrimaryKeys) != 1 {
+				return errors.New("unsupported non or composited primary key cascade")
+			}
+			var pk = make(schemas.PK, len(table.PrimaryKeys))
+			switch t := src.(type) {
+			case int64:
+				pk[0] = t
+			case *sql.NullInt64:
+				if t.Valid {
+					pk[0] = t.Int64
 				}
-				var pk = make(schemas.PK, len(table.PrimaryKeys))
+			default:
 				pk[0], err = asKind(vv, rawValueType)
 				if err != nil {
-					return nil, err
-				}
-
-				if !pk.IsZero() {
-					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-					// property to be fetched lazily
-					structInter := reflect.New(fieldValue.Type())
-					has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-					if err != nil {
-						return nil, err
-					}
-					if has {
-						fieldValue.Set(structInter.Elem())
-					} else {
-						return nil, errors.New("cascade obj is not exist")
-					}
+					return err
 				}
 			}
-		case reflect.Ptr:
-			// !nashtsai! TODO merge duplicated codes above
-			switch fieldType {
-			// following types case matching ptr's native type, therefore assign ptr directly
-			case schemas.PtrStringType:
-				if rawValueType.Kind() == reflect.String {
-					x := vv.String()
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrBoolType:
-				if rawValueType.Kind() == reflect.Bool {
-					x := vv.Bool()
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrTimeType:
-				if rawValueType == schemas.PtrTimeType {
-					hasAssigned = true
-					var x = rawValue.Interface().(time.Time)
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrFloat64Type:
-				if rawValueType.Kind() == reflect.Float64 {
-					x := vv.Float()
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrUint64Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = uint64(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrInt64Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					x := vv.Int()
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrFloat32Type:
-				if rawValueType.Kind() == reflect.Float64 {
-					var x = float32(vv.Float())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrIntType:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = int(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrInt32Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = int32(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrInt8Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = int8(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrInt16Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = int16(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrUintType:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = uint(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.PtrUint32Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = uint32(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.Uint8Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = uint8(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.Uint16Type:
-				if rawValueType.Kind() == reflect.Int64 {
-					var x = uint16(vv.Int())
-					hasAssigned = true
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-			case schemas.Complex64Type:
-				var x complex64
-				if len([]byte(vv.String())) > 0 {
-					err := json.DefaultJSONHandler.Unmarshal([]byte(vv.String()), &x)
-					if err != nil {
-						return nil, err
-					}
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-				hasAssigned = true
-			case schemas.Complex128Type:
-				var x complex128
-				if len([]byte(vv.String())) > 0 {
-					err := json.DefaultJSONHandler.Unmarshal([]byte(vv.String()), &x)
-					if err != nil {
-						return nil, err
-					}
-					fieldValue.Set(reflect.ValueOf(&x))
-				}
-				hasAssigned = true
-			} // switch fieldType
-		} // switch fieldType.Kind()
 
-		// !nashtsai! for value can't be assigned directly fallback to convert to []byte then back to value
-		if !hasAssigned {
-			data, err := value2Bytes(&rawValue)
-			if err != nil {
-				return nil, err
+			if !pk.IsZero() {
+				// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
+				// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
+				// property to be fetched lazily
+				structInter := reflect.New(fieldValue.Type())
+				has, err := session.ID(pk).NoCascade().get(structInter.Interface())
+				if err != nil {
+					return err
+				}
+				if has {
+					fieldValue.Set(structInter.Elem())
+				} else {
+					return errors.New("cascade obj is not exist")
+				}
 			}
+		} else if fieldType.ConvertibleTo(reflect.TypeOf(&sql.NullString{})) {
+			fmt.Println("=====3333======")
+		} else if fieldType.ConvertibleTo(reflect.TypeOf(&sql.NullInt64{})) {
+			fmt.Println("=====4444======")
+		}
+	case reflect.Ptr:
+		return errors.New("unsupported pointer to pointer")
+	} // switch fieldType.Kind()
 
-			if err = session.bytes2Value(col, fieldValue, data); err != nil {
-				return nil, err
+	if !hasAssigned {
+		return fmt.Errorf("unsupported convertion from %#v to %#v", src, fieldValue.Interface())
+	}
+
+	return nil
+}
+
+func (session *Session) slice2Bean(scanResults []interface{}, columnNames []string, bean interface{}, dataStruct *reflect.Value, table *schemas.Table) (schemas.PK, error) {
+	defer func() {
+		executeAfterSet(bean, columnNames, scanResults)
+	}()
+
+	buildAfterProcessors(session, bean)
+
+	var tempMap = make(map[string]int)
+	var pk schemas.PK
+	for i, columnName := range columnNames {
+		var idx int
+		var ok bool
+		var lKey = strings.ToLower(columnName)
+		if idx, ok = tempMap[lKey]; !ok {
+			idx = 0
+		} else {
+			idx = idx + 1
+		}
+		tempMap[lKey] = idx
+
+		fieldValue, err := session.getField(dataStruct, columnName, table, idx)
+		if err != nil {
+			if !strings.Contains(err.Error(), "is not valid") {
+				session.engine.logger.Warnf("%v", err)
 			}
+			continue
+		}
+		fmt.Printf("88888====== %#v \n ", scanResults[i])
+		if err := session.convertAssign(fieldValue, columnName, scanResults[i], table, &pk, idx); err != nil {
+			return nil, err
 		}
 	}
 	return pk, nil

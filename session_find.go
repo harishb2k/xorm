@@ -172,6 +172,11 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 		return err
 	}
 
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
+
 	var newElemFunc func(fields []string) reflect.Value
 	elemType := containerValue.Type().Elem()
 	var isPointer bool
@@ -241,7 +246,7 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 		if err != nil {
 			return err
 		}
-		err = session.rows2Beans(rows, fields, tb, newElemFunc, containerValueSetFunc)
+		err = session.rows2Beans(rows, types, fields, tb, newElemFunc, containerValueSetFunc)
 		rows.Close()
 		if err != nil {
 			return err
@@ -274,6 +279,7 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 }
 
 func convertPKToValue(table *schemas.Table, dst interface{}, pk schemas.PK) error {
+	fmt.Printf("----- %#v \n", pk)
 	cols := table.PKColumns()
 	if len(cols) == 1 {
 		return convertAssign(dst, pk[0], nil, nil)

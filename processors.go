@@ -4,6 +4,8 @@
 
 package xorm
 
+import "reflect"
+
 // BeforeInsertProcessor executed before an object is initially persisted to the database
 type BeforeInsertProcessor interface {
 	BeforeInsert()
@@ -94,7 +96,8 @@ func executeBeforeClosures(session *Session, bean interface{}) {
 func executeBeforeSet(bean interface{}, fields []string, scanResults []interface{}) {
 	if b, hasBeforeSet := bean.(BeforeSetProcessor); hasBeforeSet {
 		for ii, key := range fields {
-			b.BeforeSet(key, Cell(scanResults[ii].(*interface{})))
+
+			b.BeforeSet(key, Cell(reflect.ValueOf(scanResults[ii]).Elem().Interface()))
 		}
 	}
 }
@@ -102,7 +105,7 @@ func executeBeforeSet(bean interface{}, fields []string, scanResults []interface
 func executeAfterSet(bean interface{}, fields []string, scanResults []interface{}) {
 	if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
 		for ii, key := range fields {
-			b.AfterSet(key, Cell(scanResults[ii].(*interface{})))
+			b.AfterSet(key, Cell(reflect.ValueOf(scanResults[ii]).Elem().Interface()))
 		}
 	}
 }
