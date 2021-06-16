@@ -450,7 +450,7 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 }
 
 // convertAssign converts an interface src to dst reflect.Value fieldValue
-func (session *Session) convertAssign(fieldValue *reflect.Value, columnName string, src interface{}, table *schemas.Table, pk *schemas.PK, idx int) error {
+func (session *Session) convertAssign(fieldValue *reflect.Value, columnName string, src interface{}, col *schemas.Column) error {
 	if fieldValue == nil {
 		return nil
 	}
@@ -532,10 +532,6 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 
 	rawValueType := reflect.TypeOf(rawValue.Interface())
 	vv := reflect.ValueOf(rawValue.Interface())
-	col := table.GetColumnIdx(columnName, idx)
-	if col.IsPrimaryKey {
-		*pk = append(*pk, rawValue.Interface())
-	}
 	fieldType := fieldValue.Type()
 	hasAssigned := false
 
@@ -894,13 +890,22 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 				// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 				// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 				// property to be fetched lazily
-				structInter := reflect.New(fieldValue.Type())
+				t := fieldValue.Type()
+				var isPtr = t.Kind() == reflect.Ptr
+				if isPtr {
+					t = t.Elem()
+				}
+				structInter := reflect.New(t)
 				has, err := session.ID(pk).NoCascade().get(structInter.Interface())
 				if err != nil {
 					return err
 				}
 				if has {
-					fieldValue.Set(structInter.Elem())
+					if isPtr {
+						fieldValue.Set(structInter)
+					} else {
+						fieldValue.Set(structInter.Elem())
+					}
 				} else {
 					return errors.New("cascade obj is not exist")
 				}
@@ -948,9 +953,14 @@ func (session *Session) slice2Bean(scanResults []interface{}, columnNames []stri
 			}
 			continue
 		}
+
+		col := table.GetColumnIdx(columnName, idx)
 		fmt.Printf("88888====== %#v \n ", scanResults[i])
-		if err := session.convertAssign(fieldValue, columnName, scanResults[i], table, &pk, idx); err != nil {
+		if err := session.convertAssign(fieldValue, columnName, scanResults[i], col); err != nil {
 			return nil, err
+		}
+		if col.IsPrimaryKey {
+			pk = append(pk, fieldValue.Interface())
 		}
 	}
 	return pk, nil

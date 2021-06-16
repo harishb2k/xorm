@@ -194,6 +194,7 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
 			} else if session.statement.UseCascade {
+				fmt.Println("====2222")
 				table, err := session.engine.tagParser.ParseWithCache(*fieldValue)
 				if err != nil {
 					return err
@@ -215,7 +216,7 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 					// property to be fetched lazily
-					structInter := reflect.New(fieldValue.Type())
+					structInter := reflect.New(fieldValue.Elem().Type())
 					has, err := session.ID(pk).NoCascade().get(structInter.Interface())
 					if err != nil {
 						return err
@@ -474,6 +475,7 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 				fieldValue.Set(reflect.ValueOf(&x))
 			default:
 				if session.statement.UseCascade {
+					fmt.Println("====1111")
 					structInter := reflect.New(fieldType.Elem())
 					table, err := session.engine.tagParser.ParseWithCache(structInter.Elem())
 					if err != nil {

@@ -179,12 +179,15 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 
 	var newElemFunc func(fields []string) reflect.Value
 	elemType := containerValue.Type().Elem()
+
 	var isPointer bool
 	if elemType.Kind() == reflect.Ptr {
+		fmt.Printf("1===== %#v %#v \n", elemType, containerValue.Interface())
 		isPointer = true
 		elemType = elemType.Elem()
 	}
 	if elemType.Kind() == reflect.Ptr {
+		fmt.Printf("2===== %#v \n", elemType)
 		return errors.New("pointer to pointer is not supported")
 	}
 
