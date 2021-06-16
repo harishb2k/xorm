@@ -449,11 +449,6 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 	return scanResults, nil
 }
 
-var (
-	scannerTypePlaceHolder sql.Scanner
-	scannerType            = reflect.TypeOf(&scannerTypePlaceHolder).Elem()
-)
-
 // convertAssign converts an interface src to dst reflect.Value fieldValue
 func (session *Session) convertAssign(fieldValue *reflect.Value, columnName string, src interface{}, table *schemas.Table, pk *schemas.PK, idx int) error {
 	if fieldValue == nil {
@@ -467,6 +462,10 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 	rawValue := reflect.Indirect(reflect.ValueOf(src))
 	if rawValue.Interface() == nil {
 		return nil
+	}
+
+	if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+		fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 	}
 
 	fmt.Printf("----- %v <------ %v \n", fieldValue.Type(), rawValue.Type())
@@ -518,7 +517,7 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 		case *sql.NullString:
 			if t.Valid {
 				if fieldValue.IsNil() {
-					fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
+					//fieldValue.Set(reflect.New(fieldValue.Type().Elem()))
 					structConvert = fieldValue.Interface().(convert.Conversion)
 				}
 				if err := structConvert.FromDB([]byte(t.String)); err != nil {

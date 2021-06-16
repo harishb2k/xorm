@@ -22,8 +22,9 @@ const (
 type Column struct {
 	Name            string
 	TableName       string
-	FieldName       string // Available only when parsed from a struct
-	FieldIndex      []int  // Available only when parsed from a struct
+	FieldName       string       // Available only when parsed from a struct
+	FieldIndex      []int        // Available only when parsed from a struct
+	Type            reflect.Type // Available only when parsed from a struct
 	SQLType         SQLType
 	IsJSON          bool
 	Length          int

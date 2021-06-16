@@ -298,16 +298,36 @@ func (session *Session) getVars(rows *core.Rows, types []*sql.ColumnType, fields
 }
 
 func (session *Session) getStruct(rows *core.Rows, types []*sql.ColumnType, fields []string, table *schemas.Table, bean interface{}) (bool, error) {
-	fields, err := rows.Columns()
+	var scanResults = make([]interface{}, 0, len(types))
+	for i, tp := range types {
+		col := table.GetColumn(fields[i])
+		if col == nil {
+			return true, fmt.Errorf("cannot find column named %v from columns %v", fields[i], table.ColumnsSeq())
+		}
+		if col.Type.Implements(scannerType) {
+			scanResults = append(scanResults, &sql.RawBytes{})
+		} else if col.Type.Implements(conversionType) {
+			scanResults = append(scanResults, &sql.RawBytes{})
+		} else {
+			v, err := session.engine.driver.GenScanResult(tp.DatabaseTypeName())
+			if err != nil {
+				return true, err
+			}
+			scanResults = append(scanResults, v)
+		}
+	}
+
+	for _, closure := range session.beforeClosures {
+		closure(bean)
+	}
+
+	err := session.engine.scan(rows, types, scanResults...)
 	if err != nil {
-		// WARN: Alougth rows return true, but get fields failed
 		return true, err
 	}
 
-	scanResults, err := session.row2Slice(rows, fields, bean)
-	if err != nil {
-		return false, err
-	}
+	executeBeforeSet(bean, fields, scanResults)
+
 	// close it before convert data
 	rows.Close()
 

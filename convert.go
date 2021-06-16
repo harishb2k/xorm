@@ -611,8 +611,10 @@ func asKind(vv reflect.Value, tp reflect.Type) (interface{}, error) {
 			}
 			return v, nil
 		}
+	default:
+		return vv.Interface(), nil
 	}
-	return nil, fmt.Errorf("unsupported primary key type: %v, %v", tp, vv)
+	return nil, fmt.Errorf("asKind unsupported  type: %v, %v", tp, vv)
 }
 
 func asBool(bs []byte) (bool, error) {
