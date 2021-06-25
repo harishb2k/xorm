@@ -399,7 +399,7 @@ func (session *Session) rows2Beans(rows *core.Rows, types []*sql.ColumnType, fie
 		dataStruct := newValue.Elem()
 
 		// handle beforeClosures
-		scanResults, err := session.row2Slice(rows, types, fields, bean)
+		scanResults, err := session.row2Slice(rows, types, fields, bean, table)
 		if err != nil {
 			return err
 		}
@@ -418,24 +418,12 @@ func (session *Session) rows2Beans(rows *core.Rows, types []*sql.ColumnType, fie
 	return nil
 }
 
-func (session *Session) genScanResultsByTypes(types []*sql.ColumnType) ([]interface{}, error) {
-	scanResults := make([]interface{}, len(types))
-	for i := 0; i < len(types); i++ {
-		result, err := session.engine.driver.GenScanResult(types[i].DatabaseTypeName())
-		if err != nil {
-			return nil, err
-		}
-		scanResults[i] = result
-	}
-	return scanResults, nil
-}
-
-func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}) ([]interface{}, error) {
+func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}, table *schemas.Table) ([]interface{}, error) {
 	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
-	scanResults, err := session.genScanResultsByTypes(types)
+	scanResults, err := genScanResults(session.engine.driver, types, fields, table)
 	if err != nil {
 		return nil, err
 	}
@@ -608,16 +596,6 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 		}
 		return nil
 	case reflect.Slice, reflect.Array:
-		switch t := src.(type) {
-		case *sql.NullString:
-			hasAssigned = true
-			fmt.Printf("====== %#v <-------- %#v \n", fieldValue.Interface(), t)
-			if t.Valid {
-				if fieldType.Elem().Kind() == reflect.Uint8 {
-					fieldValue.SetBytes([]byte(t.String))
-				}
-			}
-		}
 		switch rawValueType.Kind() {
 		case reflect.Slice, reflect.Array:
 			switch rawValueType.Elem().Kind() {

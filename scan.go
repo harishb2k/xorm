@@ -13,6 +13,7 @@ import (
 	"xorm.io/xorm/convert"
 	"xorm.io/xorm/core"
 	"xorm.io/xorm/dialects"
+	"xorm.io/xorm/schemas"
 )
 
 // genScanResultsByBeanNullabale generates scan result
@@ -120,6 +121,19 @@ func genScanResultsByBean(bean interface{}) (interface{}, bool, error) {
 	}
 }
 
+// genRowsScanResults generating scan results according column types
+func genRowsScanResults(driver dialects.Driver, rows *core.Rows, types []*sql.ColumnType) ([]interface{}, error) {
+	var scanResults = make([]interface{}, len(types))
+	var err error
+	for i, t := range types {
+		scanResults[i], err = driver.GenScanResult(t.DatabaseTypeName())
+		if err != nil {
+			return nil, err
+		}
+	}
+	return scanResults, nil
+}
+
 func row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string]string, error) {
 	var scanResults = make([]interface{}, len(fields))
 	for i := 0; i < len(fields); i++ {
@@ -140,6 +154,37 @@ func row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[
 		result[key] = s.String
 	}
 	return result, nil
+}
+
+func genColScanResult(driver dialects.Driver, fieldType reflect.Type, columnType *sql.ColumnType) (interface{}, error) {
+	if fieldType.Implements(scannerType) || fieldType.Implements(conversionType) {
+		return &sql.RawBytes{}, nil
+	}
+	switch fieldType.Kind() {
+	case reflect.Ptr:
+		return genColScanResult(driver, fieldType.Elem(), columnType)
+	case reflect.Array, reflect.Slice:
+		return &sql.RawBytes{}, nil
+	default:
+		return driver.GenScanResult(columnType.DatabaseTypeName())
+	}
+}
+
+func genScanResults(driver dialects.Driver, types []*sql.ColumnType, fields []string, table *schemas.Table) ([]interface{}, error) {
+	var scanResults = make([]interface{}, 0, len(types))
+	for i, tp := range types {
+		col := table.GetColumn(fields[i])
+		if col == nil {
+			scanResults = append(scanResults, &sql.RawBytes{})
+			continue
+		}
+		scanResult, err := genColScanResult(driver, col.Type, tp)
+		if err != nil {
+			return nil, err
+		}
+		scanResults = append(scanResults, scanResult)
+	}
+	return scanResults, nil
 }
 
 func row2mapBytes(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string][]byte, error) {

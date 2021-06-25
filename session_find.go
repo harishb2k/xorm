@@ -243,13 +243,7 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 	}
 
 	if elemType.Kind() == reflect.Struct {
-		var newValue = newElemFunc(fields)
-		dataStruct := utils.ReflectValue(newValue.Interface())
-		tb, err := session.engine.tagParser.ParseWithCache(dataStruct)
-		if err != nil {
-			return err
-		}
-		err = session.rows2Beans(rows, types, fields, tb, newElemFunc, containerValueSetFunc)
+		err = session.rows2Beans(rows, types, fields, table, newElemFunc, containerValueSetFunc)
 		rows.Close()
 		if err != nil {
 			return err

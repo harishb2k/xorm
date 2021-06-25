@@ -135,7 +135,7 @@ func (rows *Rows) Scan(bean interface{}) error {
 		return err
 	}
 
-	scanResults, err := rows.session.row2Slice(rows.rows, types, fields, bean)
+	scanResults, err := rows.session.row2Slice(rows.rows, types, fields, bean, rows.session.statement.RefTable)
 	if err != nil {
 		return err
 	}
