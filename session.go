@@ -423,7 +423,7 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 		closure(bean)
 	}
 
-	scanResults, err := genScanResults(session.engine.driver, types, fields, table)
+	scanResults, err := genScanResultsWithTable(session.engine.driver, types, fields, table)
 	if err != nil {
 		return nil, err
 	}

@@ -121,8 +121,8 @@ func genScanResultsByBean(bean interface{}) (interface{}, bool, error) {
 	}
 }
 
-// genRowsScanResults generating scan results according column types
-func genRowsScanResults(driver dialects.Driver, rows *core.Rows, types []*sql.ColumnType) ([]interface{}, error) {
+// genScanResults generating scan results according column types
+func genScanResults(driver dialects.Driver, types []*sql.ColumnType) ([]interface{}, error) {
 	var scanResults = make([]interface{}, len(types))
 	var err error
 	for i, t := range types {
@@ -156,13 +156,13 @@ func row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[
 	return result, nil
 }
 
-func genColScanResult(driver dialects.Driver, fieldType reflect.Type, columnType *sql.ColumnType) (interface{}, error) {
+func genScanResult(driver dialects.Driver, fieldType reflect.Type, columnType *sql.ColumnType) (interface{}, error) {
 	if fieldType.Implements(scannerType) || fieldType.Implements(conversionType) {
 		return &sql.RawBytes{}, nil
 	}
 	switch fieldType.Kind() {
 	case reflect.Ptr:
-		return genColScanResult(driver, fieldType.Elem(), columnType)
+		return genScanResult(driver, fieldType.Elem(), columnType)
 	case reflect.Array, reflect.Slice:
 		return &sql.RawBytes{}, nil
 	default:
@@ -170,15 +170,16 @@ func genColScanResult(driver dialects.Driver, fieldType reflect.Type, columnType
 	}
 }
 
-func genScanResults(driver dialects.Driver, types []*sql.ColumnType, fields []string, table *schemas.Table) ([]interface{}, error) {
+func genScanResultsWithTable(driver dialects.Driver, types []*sql.ColumnType, fields []string, table *schemas.Table) ([]interface{}, error) {
 	var scanResults = make([]interface{}, 0, len(types))
 	for i, tp := range types {
 		col := table.GetColumn(fields[i])
 		if col == nil {
-			scanResults = append(scanResults, &sql.RawBytes{})
+			// the column scanned from database but will be ignored by the table, so just use emptyscanner
+			scanResults = append(scanResults, &EmptyScanner{})
 			continue
 		}
-		scanResult, err := genColScanResult(driver, col.Type, tp)
+		scanResult, err := genScanResult(driver, col.Type, tp)
 		if err != nil {
 			return nil, err
 		}
