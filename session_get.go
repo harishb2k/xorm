@@ -41,8 +41,6 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		return false, session.statement.LastError
 	}
 
-	fmt.Printf("========11111,,, %#v \n", bean)
-
 	beanValue := reflect.ValueOf(bean)
 	if beanValue.Kind() != reflect.Ptr {
 		return false, errors.New("needs a pointer to a value")
