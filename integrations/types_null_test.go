@@ -7,7 +7,6 @@ package integrations
 import (
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,6 +24,9 @@ type NullType struct {
 	Nil          driver.Valuer
 	CustomStruct CustomStruct `xorm:"varchar(64) null"`
 }
+
+var _ sql.Scanner = &CustomStruct{}
+var _ driver.Valuer = &CustomStruct{}
 
 type CustomStruct struct {
 	Year  int
@@ -50,7 +52,7 @@ func (m *CustomStruct) Scan(value interface{}) error {
 		return nil
 	}
 
-	return errors.New("scan data not fit []byte")
+	return fmt.Errorf("scan data type %#v not fit []byte", value)
 }
 
 func (m CustomStruct) Value() (driver.Value, error) {

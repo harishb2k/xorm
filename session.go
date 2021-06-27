@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -423,7 +424,12 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 		closure(bean)
 	}
 
-	scanResults, err := genScanResultsWithTable(session.engine.driver, types, fields, table)
+	values, err := getValues(bean, fields)
+	if err != nil {
+		return nil, err
+	}
+
+	scanResults, err := genScanResultsWithTable(session.engine.driver, types, fields, values, table)
 	if err != nil {
 		return nil, err
 	}
@@ -495,12 +501,12 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 		}
 	}
 
-	if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
-		if scanner, ok := fieldValue.Interface().(sql.Scanner); ok {
-			fmt.Println("===========111111111111")
-			return scanner.Scan(src)
-		}
+	if scanner, ok := fieldValue.Interface().(sql.Scanner); ok {
+		fmt.Println("===========111111111111")
+		return scanner.Scan(src)
+	}
 
+	if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
 		switch t := src.(type) {
 		case *sql.RawBytes:
 			if fieldValue.IsNil() {
@@ -523,6 +529,16 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 		default:
 			return fmt.Errorf("unsupported type: %#v", t)
 		}
+		return nil
+	}
+
+	if fieldValue.Type().Implements(valuerType) {
+		fmt.Println("--------333333--3--33-3")
+		return nil
+	}
+
+	if _, ok := fieldValue.Interface().(driver.Valuer); ok {
+		fmt.Println("22222222222")
 		return nil
 	}
 
@@ -957,7 +973,7 @@ func (session *Session) convertAssign(fieldValue *reflect.Value, columnName stri
 	} // switch fieldType.Kind()
 
 	if !hasAssigned {
-		return fmt.Errorf("unsupported convertion from %#v to %#v", src, fieldValue.Interface())
+		return fmt.Errorf("unsupported convertion from %#v to %#v on %s", src, fieldValue.Interface(), columnName)
 	}
 
 	return nil

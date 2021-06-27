@@ -156,13 +156,20 @@ func row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[
 	return result, nil
 }
 
-func genScanResult(driver dialects.Driver, fieldType reflect.Type, columnType *sql.ColumnType) (interface{}, error) {
-	if fieldType.Implements(scannerType) || fieldType.Implements(conversionType) {
-		return &sql.RawBytes{}, nil
+func genScanResult(driver dialects.Driver, fieldValue reflect.Value, columnType *sql.ColumnType) (interface{}, error) {
+	fieldType := fieldValue.Type()
+	if fieldValue.Type().Implements(scannerType) || fieldValue.Type().Implements(conversionType) {
+		return fieldValue.Interface(), nil
+	}
+	if fieldValue.CanAddr() && fieldValue.Type().Kind() != reflect.Ptr {
+		rType := reflect.PtrTo(fieldType)
+		if rType.Implements(scannerType) || rType.Implements(conversionType) {
+			return fieldValue.Addr().Interface(), nil
+		}
 	}
 	switch fieldType.Kind() {
 	case reflect.Ptr:
-		return genScanResult(driver, fieldType.Elem(), columnType)
+		return genScanResult(driver, fieldValue.Elem(), columnType)
 	case reflect.Array, reflect.Slice:
 		return &sql.RawBytes{}, nil
 	default:
@@ -183,7 +190,7 @@ func genScanResults(driver dialects.Driver, types []*sql.ColumnType) ([]interfac
 	return scanResults, nil
 }
 
-func genScanResultsWithTable(driver dialects.Driver, types []*sql.ColumnType, fields []string, table *schemas.Table) ([]interface{}, error) {
+func genScanResultsWithTable(driver dialects.Driver, types []*sql.ColumnType, fields []string, values []reflect.Value, table *schemas.Table) ([]interface{}, error) {
 	var scanResults = make([]interface{}, 0, len(types))
 	for i, tp := range types {
 		col := table.GetColumn(fields[i])
@@ -192,7 +199,8 @@ func genScanResultsWithTable(driver dialects.Driver, types []*sql.ColumnType, fi
 			scanResults = append(scanResults, &EmptyScanner{})
 			continue
 		}
-		scanResult, err := genScanResult(driver, col.Type, tp)
+		fmt.Println("=========,,,,,,", col.Name)
+		scanResult, err := genScanResult(driver, values[i], tp)
 		if err != nil {
 			return nil, err
 		}
