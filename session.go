@@ -435,7 +435,7 @@ func bean2Map(parser *tags.Parser, bean interface{}) (map[string]reflect.Value, 
 		if colV == nil {
 			continue
 		}
-		res[col.Name] = *colV
+		res[strings.ToUpper(col.Name)] = *colV
 	}
 	return res, nil
 }
@@ -449,7 +449,7 @@ func getValues(parser *tags.Parser, bean interface{}, fields ...string) ([]refle
 	for _, field := range fields {
 		v, ok := values[strings.ToUpper(field)]
 		if !ok {
-			return nil, fmt.Errorf("cannot find column %s on bean %#v", field, bean)
+			return nil, fmt.Errorf("cannot find column %s on bean %#v,,,,%#v", field, bean, values)
 		}
 		res = append(res, v)
 	}
