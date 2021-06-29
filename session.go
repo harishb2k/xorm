@@ -419,12 +419,34 @@ func (session *Session) rows2Beans(rows *core.Rows, types []*sql.ColumnType, fie
 	return nil
 }
 
+func bean2Map(parser *tags.Parser, bean interface{}) (map[string]reflect.Value, error) {
+	table, err := parser.ParseWithCache(reflect.ValueOf(bean))
+	if err != nil {
+		return nil, err
+	}
+	v := reflect.ValueOf(bean)
+	v.FieldByIndex(index []int)
+}
+
+func getValues(bean interface{}, fields ...string) ([]reflect.Value, error) {
+	values := bean2Map(bean)
+	var res = make([]reflect.Value, 0, len(fields))
+	for _, field := range fields {
+		v, ok := values[strings.ToUpper(field)]
+		if !ok {
+			return nil, fmt.Errorf("cannot find column %s on bean %#v", field, bean)
+		}
+		res = append(res, v)
+	}
+	return res, nil
+}
+
 func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}, table *schemas.Table) ([]interface{}, error) {
 	for _, closure := range session.beforeClosures {
 		closure(bean)
 	}
 
-	values, err := getValues(bean, fields)
+	values, err := getValues(bean, fields...)
 	if err != nil {
 		return nil, err
 	}
