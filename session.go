@@ -27,6 +27,7 @@ import (
 	"xorm.io/xorm/internal/statements"
 	"xorm.io/xorm/log"
 	"xorm.io/xorm/schemas"
+	"xorm.io/xorm/tags"
 )
 
 // ErrFieldIsNotExist columns does not exist
@@ -425,11 +426,25 @@ func bean2Map(parser *tags.Parser, bean interface{}) (map[string]reflect.Value, 
 		return nil, err
 	}
 	v := reflect.ValueOf(bean)
-	v.FieldByIndex(index []int)
+	var res = make(map[string]reflect.Value)
+	for _, col := range table.Columns() {
+		colV, err := col.ValueOfV(&v)
+		if err != nil {
+			return nil, err
+		}
+		if colV == nil {
+			continue
+		}
+		res[col.Name] = *colV
+	}
+	return res, nil
 }
 
-func getValues(bean interface{}, fields ...string) ([]reflect.Value, error) {
-	values := bean2Map(bean)
+func getValues(parser *tags.Parser, bean interface{}, fields ...string) ([]reflect.Value, error) {
+	values, err := bean2Map(parser, bean)
+	if err != nil {
+		return nil, err
+	}
 	var res = make([]reflect.Value, 0, len(fields))
 	for _, field := range fields {
 		v, ok := values[strings.ToUpper(field)]
@@ -446,7 +461,7 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 		closure(bean)
 	}
 
-	values, err := getValues(bean, fields...)
+	values, err := getValues(session.engine.tagParser, bean, fields...)
 	if err != nil {
 		return nil, err
 	}
