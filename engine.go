@@ -390,7 +390,7 @@ func (engine *Engine) loadTableInfo(table *schemas.Table) error {
 			if col := table.GetColumn(colName); col != nil {
 				col.Indexes[index.Name] = index.Type
 			} else {
-				return fmt.Errorf("Unknown col %s seq %d, in index %v of table %v, columns %v", name, seq, index.Name, table.Name, table.ColumnsSeq())
+				return fmt.Errorf("unknown col %s seq %d, in index %v of table %v, columns %v", name, seq, index.Name, table.Name, table.ColumnsSeq())
 			}
 		}
 	}
@@ -510,7 +510,7 @@ func formatColumnValue(dbLocation *time.Location, dstDialect dialects.Dialect, d
 		return "'" + strings.Replace(v, "'", "''", -1) + "'"
 	} else if col.SQLType.IsBlob() {
 		if reflect.TypeOf(d).Kind() == reflect.Slice {
-			return fmt.Sprintf("%s", dstDialect.FormatBytes(d.([]byte)))
+			return dstDialect.FormatBytes(d.([]byte))
 		} else if reflect.TypeOf(d).Kind() == reflect.String {
 			return fmt.Sprintf("'%s'", d.(string))
 		}
@@ -520,7 +520,7 @@ func formatColumnValue(dbLocation *time.Location, dstDialect dialects.Dialect, d
 			if col.SQLType.Name == schemas.Bool {
 				return fmt.Sprintf("%v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
 			}
-			return fmt.Sprintf("%s", string(d.([]byte)))
+			return string(d.([]byte))
 		case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
 			if col.SQLType.Name == schemas.Bool {
 				v := reflect.ValueOf(d).Int() > 0
@@ -568,7 +568,7 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 	} else {
 		dstDialect = dialects.QueryDialect(tp[0])
 		if dstDialect == nil {
-			return errors.New("Unsupported database type")
+			return errors.New("unsupported database type")
 		}
 
 		uri := engine.dialect.URI()
@@ -653,13 +653,13 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 				return err
 			}
 
-			row, err := engine.scanInterfaceResults(rows, coltypes, dstCols)
+			row, err := engine.scanInterfaces(rows, coltypes)
 			if err != nil {
 				return err
 			}
 
 			for i, cell := range row {
-				s := engine.formatColumnValue(dstDialect, cell, dstColumns[i])
+				s := formatColumnValue(engine.DatabaseTZ, dstDialect, cell, dstColumns[i])
 				if _, err = io.WriteString(w, s); err != nil {
 					return err
 				}
@@ -667,22 +667,11 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 					if _, err = io.WriteString(w, ","); err != nil {
 						return err
 					}
-
-					field := dataStruct.FieldByIndex(col.FieldIndex)
-					temp += "," + formatColumnValue(engine.DatabaseTZ, dstDialect, field.Interface(), col)
-				}
-				_, err = io.WriteString(w, temp[1:]+");\n")
-				if err != nil {
-					return err
 				}
 			}
-
-					temp += "," + formatColumnValue(engine.DatabaseTZ, dstDialect, d, col)
-				}
-				_, err = io.WriteString(w, temp[1:]+");\n")
-				if err != nil {
-					return err
-				}
+			_, err = io.WriteString(w, ");\n")
+			if err != nil {
+				return err
 			}
 		}
 

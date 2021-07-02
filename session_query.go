@@ -72,7 +72,7 @@ func (session *Session) rows2SliceString(rows *core.Rows) (resultsSlice [][]stri
 		if err != nil {
 			return nil, err
 		}
-		resultsSlice = append(resultsSlice, record)
+		resultsSlice = append(resultsSlice, result)
 	}
 
 	return resultsSlice, nil
@@ -95,7 +95,7 @@ func (session *Session) QueryString(sqlOrArgs ...interface{}) ([]map[string]stri
 	}
 	defer rows.Close()
 
-	return session.engine.rows2Strings(rows)
+	return session.rows2Strings(rows)
 }
 
 // QuerySliceString runs a raw sql and return records as [][]string

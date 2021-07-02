@@ -177,19 +177,6 @@ func genScanResult(driver dialects.Driver, fieldValue reflect.Value, columnType 
 	}
 }
 
-// genScanResults generating scan results according column types
-func genScanResults(driver dialects.Driver, types []*sql.ColumnType) ([]interface{}, error) {
-	var scanResults = make([]interface{}, len(types))
-	var err error
-	for i, t := range types {
-		scanResults[i], err = driver.GenScanResult(t.DatabaseTypeName())
-		if err != nil {
-			return nil, err
-		}
-	}
-	return scanResults, nil
-}
-
 func genScanResultsWithTable(driver dialects.Driver, types []*sql.ColumnType, fields []string, values []reflect.Value, table *schemas.Table) ([]interface{}, error) {
 	var scanResults = make([]interface{}, 0, len(types))
 	for i, tp := range types {
