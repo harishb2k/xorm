@@ -134,28 +134,6 @@ func genScanResults(driver dialects.Driver, types []*sql.ColumnType) ([]interfac
 	return scanResults, nil
 }
 
-func row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string]string, error) {
-	var scanResults = make([]interface{}, len(fields))
-	for i := 0; i < len(fields); i++ {
-		var s sql.NullString
-		scanResults[i] = &s
-	}
-
-	if err := engine.driver.Scan(&dialects.ScanContext{
-		DBLocation:   engine.DatabaseTZ,
-		UserLocation: engine.TZLocation,
-	}, rows, types, scanResults...); err != nil {
-		return nil, err
-	}
-
-	result := make(map[string]string, len(fields))
-	for ii, key := range fields {
-		s := scanResults[ii].(*sql.NullString)
-		result[key] = s.String
-	}
-	return result, nil
-}
-
 func genScanResult(driver dialects.Driver, fieldValue reflect.Value, columnType *sql.ColumnType) (interface{}, error) {
 	fieldType := fieldValue.Type()
 	if fieldValue.Type().Implements(scannerType) || fieldValue.Type().Implements(conversionType) {
