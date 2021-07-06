@@ -47,11 +47,15 @@ func (session *Session) rows2Strings(rows *core.Rows) (resultsSlice []map[string
 		return nil, err
 	}
 	for rows.Next() {
-		result, err := session.engine.row2mapStr(rows, types, fields)
+		result, err := session.engine.scanStringInterface(rows, types)
 		if err != nil {
 			return nil, err
 		}
-		resultsSlice = append(resultsSlice, result)
+		var res = make(map[string]string)
+		for i, r := range result {
+			res[fields[i]] = r.(*sql.NullString).String
+		}
+		resultsSlice = append(resultsSlice, res)
 	}
 
 	return resultsSlice, nil

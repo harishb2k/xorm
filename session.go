@@ -471,7 +471,7 @@ func (session *Session) row2Slice(rows *core.Rows, types []*sql.ColumnType, fiel
 		return nil, err
 	}
 
-	if err := session.engine.scan(rows, types, scanResults...); err != nil {
+	if err := session.engine.scan(rows, fields, types, scanResults...); err != nil {
 		return nil, err
 	}
 
