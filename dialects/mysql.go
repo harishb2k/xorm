@@ -671,12 +671,6 @@ func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	return uri, nil
 }
 
-func (b *mysqlDriver) Features() DriverFeatures {
-	return DriverFeatures{
-		SupportNullable: false,
-	}
-}
-
 func (p *mysqlDriver) GenScanResult(colType string) (interface{}, error) {
 	switch colType {
 	case "CHAR", "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "ENUM", "SET":
