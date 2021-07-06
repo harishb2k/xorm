@@ -551,12 +551,6 @@ func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	return &URI{DBType: schemas.SQLITE, DBName: dataSourceName}, nil
 }
 
-func (b *sqlite3Driver) Features() DriverFeatures {
-	return DriverFeatures{
-		SupportNullable: false,
-	}
-}
-
 func (p *sqlite3Driver) GenScanResult(colType string) (interface{}, error) {
 	switch colType {
 	case "TEXT":
@@ -580,5 +574,11 @@ func (p *sqlite3Driver) GenScanResult(colType string) (interface{}, error) {
 	default:
 		var r sql.NullString
 		return &r, nil
+	}
+}
+
+func (b *sqlite3Driver) Features() DriverFeatures {
+	return DriverFeatures{
+		SupportNullable: false,
 	}
 }
