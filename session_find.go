@@ -276,7 +276,7 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 func convertPKToValue(table *schemas.Table, dst interface{}, pk schemas.PK) error {
 	cols := table.PKColumns()
 	if len(cols) == 1 {
-		return convertAssign(dst, pk[0])
+		return convertAssign(dst, pk[0], nil, nil)
 	}
 
 	dst = pk

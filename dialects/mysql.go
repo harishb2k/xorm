@@ -7,6 +7,7 @@ package dialects
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/core"
 	"xorm.io/xorm/schemas"
 )
@@ -630,7 +632,125 @@ func (db *mysql) Filters() []Filter {
 	return []Filter{}
 }
 
+type mysqlDriver struct {
+	baseDriver
+}
+
+func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
+	dsnPattern := regexp.MustCompile(
+		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
+			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
+			`\/(?P<dbname>.*?)` + // /dbname
+			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
+	matches := dsnPattern.FindStringSubmatch(dataSourceName)
+	// tlsConfigRegister := make(map[string]*tls.Config)
+	names := dsnPattern.SubexpNames()
+
+	uri := &URI{DBType: schemas.MYSQL}
+
+	for i, match := range matches {
+		switch names[i] {
+		case "dbname":
+			uri.DBName = match
+		case "params":
+			if len(match) > 0 {
+				kvs := strings.Split(match, "&")
+				for _, kv := range kvs {
+					splits := strings.Split(kv, "=")
+					if len(splits) == 2 {
+						switch splits[0] {
+						case "charset":
+							uri.Charset = splits[1]
+						}
+					}
+				}
+			}
+
+		}
+	}
+	return uri, nil
+}
+
+func (p *mysqlDriver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "CHAR", "VARCHAR", "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT", "ENUM", "SET":
+		var s sql.NullString
+		return &s, nil
+	case "BIGINT":
+		var s sql.NullInt64
+		return &s, nil
+	case "TINYINT", "SMALLINT", "MEDIUMINT", "INT":
+		var s sql.NullInt32
+		return &s, nil
+	case "FLOAT", "REAL", "DOUBLE PRECISION":
+		var s sql.NullFloat64
+		return &s, nil
+	case "DECIMAL", "NUMERIC":
+		var s sql.NullString
+		return &s, nil
+	case "DATETIME":
+		var s sql.NullTime
+		return &s, nil
+	case "BIT":
+		var s sql.RawBytes
+		return &s, nil
+	case "BINARY", "VARBINARY", "TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB":
+		var r sql.RawBytes
+		return &r, nil
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
+}
+
+func (p *mysqlDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.ColumnType, scanResults ...interface{}) error {
+	var v2 = make([]interface{}, 0, len(scanResults))
+	var turnBackIdxes = make([]int, 0, 5)
+	for i, vv := range scanResults {
+		switch vv.(type) {
+		case *time.Time:
+			v2 = append(v2, &sql.NullString{})
+			turnBackIdxes = append(turnBackIdxes, i)
+		case *sql.NullTime:
+			v2 = append(v2, &sql.NullString{})
+			turnBackIdxes = append(turnBackIdxes, i)
+		default:
+			v2 = append(v2, scanResults[i])
+		}
+	}
+	if err := rows.Scan(v2...); err != nil {
+		return err
+	}
+	for _, i := range turnBackIdxes {
+		switch t := scanResults[i].(type) {
+		case *time.Time:
+			var s = *(v2[i].(*sql.NullString))
+			if !s.Valid {
+				break
+			}
+			dt, err := convert.String2Time(s.String, ctx.DBLocation, ctx.UserLocation)
+			if err != nil {
+				return err
+			}
+			*t = *dt
+		case *sql.NullTime:
+			var s = *(v2[i].(*sql.NullString))
+			if !s.Valid {
+				break
+			}
+			dt, err := convert.String2Time(s.String, ctx.DBLocation, ctx.UserLocation)
+			if err != nil {
+				return err
+			}
+			t.Time = *dt
+			t.Valid = true
+		}
+	}
+	return nil
+}
+
 type mymysqlDriver struct {
+	mysqlDriver
 }
 
 func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
@@ -679,43 +799,5 @@ func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	uri.User = dup[1]
 	uri.Passwd = dup[2]
 
-	return uri, nil
-}
-
-type mysqlDriver struct {
-}
-
-func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
-	dsnPattern := regexp.MustCompile(
-		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
-			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
-			`\/(?P<dbname>.*?)` + // /dbname
-			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
-	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	// tlsConfigRegister := make(map[string]*tls.Config)
-	names := dsnPattern.SubexpNames()
-
-	uri := &URI{DBType: schemas.MYSQL}
-
-	for i, match := range matches {
-		switch names[i] {
-		case "dbname":
-			uri.DBName = match
-		case "params":
-			if len(match) > 0 {
-				kvs := strings.Split(match, "&")
-				for _, kv := range kvs {
-					splits := strings.Split(kv, "=")
-					if len(splits) == 2 {
-						switch splits[0] {
-						case "charset":
-							uri.Charset = splits[1]
-						}
-					}
-				}
-			}
-
-		}
-	}
 	return uri, nil
 }

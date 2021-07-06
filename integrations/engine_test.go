@@ -176,6 +176,23 @@ func TestDumpTables(t *testing.T) {
 	}
 }
 
+func TestDumpTables2(t *testing.T) {
+	assert.NoError(t, PrepareEngine())
+
+	type TestDumpTableStruct2 struct {
+		Id      int64
+		Created time.Time `xorm:"Default CURRENT_TIMESTAMP"`
+	}
+
+	assertSync(t, new(TestDumpTableStruct2))
+
+	fp := fmt.Sprintf("./dump2-%v-table.sql", testEngine.Dialect().URI().DBType)
+	os.Remove(fp)
+	tb, err := testEngine.TableInfo(new(TestDumpTableStruct2))
+	assert.NoError(t, err)
+	assert.NoError(t, testEngine.(*xorm.Engine).DumpTablesToFile([]*schemas.Table{tb}, fp))
+}
+
 func TestSetSchema(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
@@ -208,4 +225,40 @@ func TestDBVersion(t *testing.T) {
 	assert.NoError(t, err)
 
 	fmt.Println(testEngine.Dialect().URI().DBType, "version is", version)
+}
+
+func TestGetColumns(t *testing.T) {
+	if testEngine.Dialect().URI().DBType != schemas.POSTGRES {
+		t.Skip()
+		return
+	}
+	type TestCommentStruct struct {
+		HasComment int
+		NoComment  int
+	}
+
+	assertSync(t, new(TestCommentStruct))
+
+	comment := "this is a comment"
+	sql := fmt.Sprintf("comment on column %s.%s is '%s'", testEngine.TableName(new(TestCommentStruct), true), "has_comment", comment)
+	_, err := testEngine.Exec(sql)
+	assert.NoError(t, err)
+
+	tables, err := testEngine.DBMetas()
+	assert.NoError(t, err)
+	tableName := testEngine.GetColumnMapper().Obj2Table("TestCommentStruct")
+	var hasComment, noComment string
+	for _, table := range tables {
+		if table.Name == tableName {
+			col := table.GetColumn("has_comment")
+			assert.NotNil(t, col)
+			hasComment = col.Comment
+			col2 := table.GetColumn("no_comment")
+			assert.NotNil(t, col2)
+			noComment = col2.Comment
+			break
+		}
+	}
+	assert.Equal(t, comment, hasComment)
+	assert.Zero(t, noComment)
 }

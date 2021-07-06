@@ -52,7 +52,7 @@ func TestQueryString2(t *testing.T) {
 
 	type GetVar3 struct {
 		Id  int64 `xorm:"autoincr pk"`
-		Msg bool  `xorm:"bit"`
+		Msg bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(GetVar3)))
@@ -107,6 +107,16 @@ func toFloat64(i interface{}) float64 {
 	return 0
 }
 
+func toBool(i interface{}) bool {
+	switch t := i.(type) {
+	case int32:
+		return t > 0
+	case bool:
+		return t
+	}
+	return false
+}
+
 func TestQueryInterface(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
@@ -132,10 +142,10 @@ func TestQueryInterface(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(records))
 	assert.Equal(t, 5, len(records[0]))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.Equal(t, "hi", toString(records[0]["msg"]))
-	assert.EqualValues(t, 28, toInt64(records[0]["age"]))
-	assert.EqualValues(t, 1.5, toFloat64(records[0]["money"]))
+	assert.EqualValues(t, int64(1), records[0]["id"])
+	assert.Equal(t, "hi", records[0]["msg"])
+	assert.EqualValues(t, 28, records[0]["age"])
+	assert.EqualValues(t, 1.5, records[0]["money"])
 }
 
 func TestQueryNoParams(t *testing.T) {
@@ -192,7 +202,7 @@ func TestQueryStringNoParam(t *testing.T) {
 
 	type GetVar4 struct {
 		Id  int64 `xorm:"autoincr pk"`
-		Msg bool  `xorm:"bit"`
+		Msg bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(GetVar4)))
@@ -229,7 +239,7 @@ func TestQuerySliceStringNoParam(t *testing.T) {
 
 	type GetVar6 struct {
 		Id  int64 `xorm:"autoincr pk"`
-		Msg bool  `xorm:"bit"`
+		Msg bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(GetVar6)))
@@ -266,7 +276,7 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 
 	type GetVar5 struct {
 		Id  int64 `xorm:"autoincr pk"`
-		Msg bool  `xorm:"bit"`
+		Msg bool
 	}
 
 	assert.NoError(t, testEngine.Sync2(new(GetVar5)))
@@ -280,14 +290,14 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 	records, err := testEngine.Table("get_var5").Limit(1).QueryInterface()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
+	assert.EqualValues(t, 1, records[0]["id"])
+	assert.False(t, toBool(records[0]["msg"]))
 
 	records, err = testEngine.Table("get_var5").Where(builder.Eq{"id": 1}).QueryInterface()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(records))
-	assert.EqualValues(t, 1, toInt64(records[0]["id"]))
-	assert.EqualValues(t, 0, toInt64(records[0]["msg"]))
+	assert.EqualValues(t, 1, records[0]["id"])
+	assert.False(t, toBool(records[0]["msg"]))
 }
 
 func TestQueryWithBuilder(t *testing.T) {

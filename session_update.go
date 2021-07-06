@@ -280,15 +280,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 					k = ct.Elem().Kind()
 				}
 				if k == reflect.Struct {
-					var refTable = session.statement.RefTable
-					if refTable == nil {
-						refTable, err = session.engine.TableInfo(condiBean[0])
-						if err != nil {
-							return 0, err
-						}
+					condTable, err := session.engine.TableInfo(condiBean[0])
+					if err != nil {
+						return 0, err
 					}
-					var err error
-					autoCond, err = session.statement.BuildConds(refTable, condiBean[0], true, true, false, true, false)
+
+					autoCond, err = session.statement.BuildConds(condTable, condiBean[0], true, true, false, true, false)
 					if err != nil {
 						return 0, err
 					}
@@ -457,7 +454,6 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				// FIXME: if bean is a map type, it will panic because map cannot be as map key
 				session.afterUpdateBeans[bean] = &afterClosures
 			}
-
 		} else {
 			if _, ok := interface{}(bean).(AfterUpdateProcessor); ok {
 				session.afterUpdateBeans[bean] = nil

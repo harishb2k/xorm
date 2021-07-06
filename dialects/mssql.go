@@ -6,6 +6,7 @@ package dialects
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/url"
@@ -624,6 +625,7 @@ func (db *mssql) Filters() []Filter {
 }
 
 type odbcDriver struct {
+	baseDriver
 }
 
 func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {
@@ -651,4 +653,27 @@ func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 		return nil, errors.New("no db name provided")
 	}
 	return &URI{DBName: dbName, DBType: schemas.MSSQL}, nil
+}
+
+func (p *odbcDriver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "VARCHAR", "TEXT", "CHAR", "NVARCHAR", "NCHAR", "NTEXT":
+		fallthrough
+	case "DATE", "DATETIME", "DATETIME2", "TIME":
+		var s sql.NullString
+		return &s, nil
+	case "FLOAT", "REAL":
+		var s sql.NullFloat64
+		return &s, nil
+	case "BIGINT", "DATETIMEOFFSET":
+		var s sql.NullInt64
+		return &s, nil
+	case "TINYINT", "SMALLINT", "INT":
+		var s sql.NullInt32
+		return &s, nil
+
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
 }

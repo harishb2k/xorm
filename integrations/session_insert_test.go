@@ -32,7 +32,6 @@ func TestInsertOne(t *testing.T) {
 }
 
 func TestInsertMulti(t *testing.T) {
-
 	assert.NoError(t, PrepareEngine())
 	type TestMulti struct {
 		Id   int64  `xorm:"int(11) pk"`
@@ -78,7 +77,6 @@ func insertMultiDatas(step int, datas interface{}) (num int64, err error) {
 }
 
 func callbackLooper(datas interface{}, step int, actionFunc func(interface{}) error) (err error) {
-
 	sliceValue := reflect.Indirect(reflect.ValueOf(datas))
 	if sliceValue.Kind() != reflect.Slice {
 		return fmt.Errorf("not slice")
@@ -170,16 +168,16 @@ func TestInsertAutoIncr(t *testing.T) {
 	assert.Greater(t, user.Uid, int64(0))
 }
 
-type DefaultInsert struct {
-	Id      int64
-	Status  int `xorm:"default -1"`
-	Name    string
-	Created time.Time `xorm:"created"`
-	Updated time.Time `xorm:"updated"`
-}
-
 func TestInsertDefault(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
+
+	type DefaultInsert struct {
+		Id      int64
+		Status  int `xorm:"default -1"`
+		Name    string
+		Created time.Time `xorm:"created"`
+		Updated time.Time `xorm:"updated"`
+	}
 
 	di := new(DefaultInsert)
 	err := testEngine.Sync2(di)
@@ -197,15 +195,15 @@ func TestInsertDefault(t *testing.T) {
 	assert.EqualValues(t, di2.Created.Unix(), di.Created.Unix())
 }
 
-type DefaultInsert2 struct {
-	Id        int64
-	Name      string
-	Url       string    `xorm:"text"`
-	CheckTime time.Time `xorm:"not null default '2000-01-01 00:00:00' TIMESTAMP"`
-}
-
 func TestInsertDefault2(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
+
+	type DefaultInsert2 struct {
+		Id        int64
+		Name      string
+		Url       string    `xorm:"text"`
+		CheckTime time.Time `xorm:"not null default '2000-01-01 00:00:00' TIMESTAMP"`
+	}
 
 	di := new(DefaultInsert2)
 	err := testEngine.Sync2(di)
@@ -1025,4 +1023,45 @@ func TestInsertIntSlice(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, v3, v4)
+}
+
+func TestInsertDeleted(t *testing.T) {
+	assert.NoError(t, PrepareEngine())
+
+	type InsertDeletedStructNotRight struct {
+		ID        uint64    `xorm:"'ID' pk autoincr"`
+		DeletedAt time.Time `xorm:"'DELETED_AT' deleted notnull"`
+	}
+	// notnull tag will be ignored
+	err := testEngine.Sync2(new(InsertDeletedStructNotRight))
+	assert.NoError(t, err)
+
+	type InsertDeletedStruct struct {
+		ID        uint64    `xorm:"'ID' pk autoincr"`
+		DeletedAt time.Time `xorm:"'DELETED_AT' deleted"`
+	}
+
+	assert.NoError(t, testEngine.Sync2(new(InsertDeletedStruct)))
+
+	var v InsertDeletedStruct
+	_, err = testEngine.Insert(&v)
+	assert.NoError(t, err)
+
+	var v2 InsertDeletedStruct
+	has, err := testEngine.Get(&v2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+
+	_, err = testEngine.ID(v.ID).Delete(new(InsertDeletedStruct))
+	assert.NoError(t, err)
+
+	var v3 InsertDeletedStruct
+	has, err = testEngine.Get(&v3)
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	var v4 InsertDeletedStruct
+	has, err = testEngine.Unscoped().Get(&v4)
+	assert.NoError(t, err)
+	assert.True(t, has)
 }

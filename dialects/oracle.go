@@ -6,6 +6,7 @@ package dialects
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -823,6 +824,7 @@ func (db *oracle) Filters() []Filter {
 }
 
 type godrorDriver struct {
+	baseDriver
 }
 
 func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) {
@@ -848,7 +850,28 @@ func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) 
 	return db, nil
 }
 
+func (p *godrorDriver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "LONG", "CLOB", "NCLOB":
+		var s sql.NullString
+		return &s, nil
+	case "NUMBER":
+		var s sql.NullString
+		return &s, nil
+	case "DATE":
+		var s sql.NullTime
+		return &s, nil
+	case "BLOB":
+		var r sql.RawBytes
+		return &r, nil
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
+}
+
 type oci8Driver struct {
+	godrorDriver
 }
 
 // dataSourceName=user/password@ipv4:port/dbname

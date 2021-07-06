@@ -540,6 +540,7 @@ func (db *sqlite3) Filters() []Filter {
 }
 
 type sqlite3Driver struct {
+	baseDriver
 }
 
 func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*URI, error) {
@@ -548,4 +549,36 @@ func (p *sqlite3Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	}
 
 	return &URI{DBType: schemas.SQLITE, DBName: dataSourceName}, nil
+}
+
+func (p *sqlite3Driver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "TEXT":
+		var s sql.NullString
+		return &s, nil
+	case "INTEGER":
+		var s sql.NullInt64
+		return &s, nil
+	case "DATETIME":
+		var s sql.NullTime
+		return &s, nil
+	case "REAL":
+		var s sql.NullFloat64
+		return &s, nil
+	case "NUMERIC":
+		var s sql.NullString
+		return &s, nil
+	case "BLOB":
+		var s sql.RawBytes
+		return &s, nil
+	default:
+		var r sql.NullString
+		return &r, nil
+	}
+}
+
+func (b *sqlite3Driver) Features() DriverFeatures {
+	return DriverFeatures{
+		SupportNullable: false,
+	}
 }
