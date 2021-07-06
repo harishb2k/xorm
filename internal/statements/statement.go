@@ -968,6 +968,12 @@ func (statement *Statement) convertSQLOrArgs(sqlOrArgs ...interface{}) (string, 
 					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
 				} else if v, ok := arg.(time.Time); ok {
 					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
+				} else if v, ok := arg.(convert.ConversionTo); ok {
+					r, err := v.ToDB()
+					if err != nil {
+						return "", nil, err
+					}
+					newArgs = append(newArgs, r)
 				} else {
 					newArgs = append(newArgs, arg)
 				}
