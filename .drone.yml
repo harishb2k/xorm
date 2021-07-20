@@ -278,8 +278,6 @@ steps:
     TEST_TIDB_PASSWORD:
   commands:
   - make test-tidb
-  - TEST_CACHE_ENABLE=true make test-tidb
-  - TEST_QUOTE_POLICY=reserved make test-tidb
 
 volumes:
 - name: cache
@@ -314,7 +312,6 @@ steps:
   commands:
   - sleep 10
   - make test-cockroach
-  - TEST_CACHE_ENABLE=true make test-cockroach
 
 volumes:
 - name: cache
@@ -329,6 +326,40 @@ services:
 
 ---
 kind: pipeline
+name: test-clickhouse
+depends_on:
+  - test-cockroach
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-clickhouse
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
+    TEST_CLICKHOUSE_HOST: "clickhouse:9000"
+    TEST_CLICKHOUSE_DBNAME: xorm_test
+    TEST_CLICKHOUSE_USERNAME: root
+    TEST_CLICKHOUSE_PASSWORD:
+  commands:
+  - sleep 10
+  - make test-clickhouse
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: clickhouse
+  image: yandex/clickhouse-server:21.7.4.18
+
+---
+kind: pipeline
 name: merge_coverage
 depends_on:
   - test-mysql
@@ -338,6 +369,7 @@ depends_on:
   - test-mssql
   - test-tidb
   - test-cockroach
+  - test-clickhouse
 trigger:
   ref:
   - refs/heads/master
