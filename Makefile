@@ -249,13 +249,13 @@ test-tidb\#%: go-check
 
 .PNONY: test-clickhouse
 test-clickhouse: go-check
-	$(GO) test $(INTEGRATION_PACKAGES) -v -race -db=mysql -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -db=clickhouse -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
 	-conn_str="tcp://$(TEST_CLICKHOUSE_HOST)?username=$(TEST_CLICKHOUSE_USERNAME)&password=$(TEST_CLICKHOUSE_PASSWORD)&database=$(TEST_CLICKHOUSE_DBNAME)" \
 	-quote=$(TEST_QUOTE_POLICY) -coverprofile=tidb.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PHONY: test-clickhouse\#%
 test-clickhouse\#%: go-check
-	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=mysql -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=clickhouse -cache=$(TEST_CACHE_ENABLE) -ignore_select_update=true \
 	-conn_str="tcp://$(TEST_CLICKHOUSE_HOST)?username=$(TEST_CLICKHOUSE_USERNAME)&password=$(TEST_CLICKHOUSE_PASSWORD)&database=$(TEST_CLICKHOUSE_DBNAME)" \
 	-quote=$(TEST_QUOTE_POLICY) -coverprofile=tidb.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 

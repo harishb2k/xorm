@@ -83,11 +83,3 @@ type baseDriver struct{}
 func (b *baseDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.ColumnType, v ...interface{}) error {
 	return rows.Scan(v...)
 }
-
-type driverProxy struct {
-	parser func(connStr string) (*URI, error)
-}
-
-func (p *driverProxy) Parse(driverName, dataSourceName string) (*URI, error) {
-	return p.parser(dataSourceName)
-}

@@ -35,9 +35,9 @@ func genScanResultsByBeanNullable(bean interface{}) (interface{}, bool, error) {
 	case *int64:
 		return &sql.NullInt64{}, true, nil
 	case *uint, *uint8, *uint16, *uint32:
-		return &NullUint32{}, true, nil
+		return &convert.NullUint32{}, true, nil
 	case *uint64:
-		return &NullUint64{}, true, nil
+		return &convert.NullUint64{}, true, nil
 	case *float32, *float64:
 		return &sql.NullFloat64{}, true, nil
 	case *bool:
@@ -63,9 +63,9 @@ func genScanResultsByBeanNullable(bean interface{}) (interface{}, bool, error) {
 	case reflect.Int32, reflect.Int, reflect.Int16, reflect.Int8:
 		return &sql.NullInt32{}, true, nil
 	case reflect.Uint64:
-		return &NullUint64{}, true, nil
+		return &convert.NullUint64{}, true, nil
 	case reflect.Uint32, reflect.Uint, reflect.Uint16, reflect.Uint8:
-		return &NullUint32{}, true, nil
+		return &convert.NullUint32{}, true, nil
 	default:
 		return nil, false, fmt.Errorf("unsupported type: %#v", bean)
 	}

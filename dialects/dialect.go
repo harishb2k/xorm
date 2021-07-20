@@ -221,7 +221,7 @@ func regDrvsNDialects() bool {
 		"sqlite":     {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"oci8":       {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
 		"godror":     {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
-		"clickhouse": {"clickhouse", func() Driver { return &driverProxy{ParseClickHouse} }, func() Dialect { return &clickhouse{} }},
+		"clickhouse": {"clickhouse", func() Driver { return &clickhouse{} }, func() Dialect { return &clickhouse{} }},
 	}
 
 	for driverName, v := range providedDrvsNDialects {
