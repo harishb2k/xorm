@@ -6,6 +6,7 @@ package dialects
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
@@ -31,6 +32,23 @@ type db2 struct {
 func (db *db2) Init(uri *URI) error {
 	db.quoter = db2Quoter
 	return db.Base.Init(db, uri)
+}
+
+func (db *db2) Version(context.Context, core.Queryer) (*schemas.Version, error) {
+	return nil, fmt.Errorf("not implementation")
+}
+
+func (db *db2) ColumnTypeKind(t string) int {
+	switch strings.ToUpper(t) {
+	case "DATE", "DATETIME", "DATETIME2", "TIME":
+		return schemas.TIME_TYPE
+	case "VARCHAR", "TEXT", "CHAR", "NVARCHAR", "NCHAR", "NTEXT":
+		return schemas.TEXT_TYPE
+	case "FLOAT", "REAL", "BIGINT", "DATETIMEOFFSET", "TINYINT", "SMALLINT", "INT":
+		return schemas.NUMERIC_TYPE
+	default:
+		return schemas.UNKNOW_TYPE
+	}
 }
 
 func (db *db2) SQLType(c *schemas.Column) string {
@@ -412,7 +430,35 @@ func (db *db2) Filters() []Filter {
 	return []Filter{}
 }
 
-type db2Driver struct{}
+type db2Driver struct {
+	baseDriver
+}
+
+func (p *db2Driver) Features() *DriverFeatures {
+	return &DriverFeatures{
+		SupportReturnInsertedID: false,
+	}
+}
+
+func (g *db2Driver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "LONG", "CLOB", "NCLOB":
+		var s sql.NullString
+		return &s, nil
+	case "NUMBER":
+		var s sql.NullString
+		return &s, nil
+	case "DATE":
+		var s sql.NullTime
+		return &s, nil
+	case "BLOB":
+		var r sql.RawBytes
+		return &r, nil
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
+}
 
 func (p *db2Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	var dbName string

@@ -211,18 +211,6 @@ func regDrvsNDialects() bool {
 		getDriver  func() Driver
 		getDialect func() Dialect
 	}{
-<<<<<<< HEAD
-		"mssql":    {"mssql", func() Driver { return &odbcDriver{} }, func() Dialect { return &mssql{} }},
-		"odbc":     {"mssql", func() Driver { return &odbcDriver{} }, func() Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
-		"mysql":    {"mysql", func() Driver { return &mysqlDriver{} }, func() Dialect { return &mysql{} }},
-		"mymysql":  {"mysql", func() Driver { return &mymysqlDriver{} }, func() Dialect { return &mysql{} }},
-		"postgres": {"postgres", func() Driver { return &pqDriver{} }, func() Dialect { return &postgres{} }},
-		"pgx":      {"postgres", func() Driver { return &pqDriverPgx{} }, func() Dialect { return &postgres{} }},
-		"sqlite3":  {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
-		"sqlite":   {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
-		"oci8":     {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
-		"godror":   {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
-=======
 		"mssql":     {"mssql", func() Driver { return &odbcDriver{} }, func() Dialect { return &mssql{} }},
 		"odbc":      {"mssql", func() Driver { return &odbcDriver{} }, func() Dialect { return &mssql{} }}, // !nashtsai! TODO change this when supporting MS Access
 		"mysql":     {"mysql", func() Driver { return &mysqlDriver{} }, func() Dialect { return &mysql{} }},
@@ -232,9 +220,8 @@ func regDrvsNDialects() bool {
 		"sqlite3":   {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"sqlite":    {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"oci8":      {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
-		"goracle":   {"oracle", func() Driver { return &goracleDriver{} }, func() Dialect { return &oracle{} }},
+		"godror":    {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
 		"go_ibm_db": {"db2", func() Driver { return &db2Driver{} }, func() Dialect { return &db2{} }},
->>>>>>> 538a3b2 (Use new dialect interface)
 	}
 
 	for driverName, v := range providedDrvsNDialects {
