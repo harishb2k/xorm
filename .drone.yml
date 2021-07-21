@@ -403,6 +403,10 @@ kind: pipeline
 name: test-oracle
 depends_on:
   - test-cockroach
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
 steps:
 - name: test-oracle
   pull: never
@@ -418,25 +422,7 @@ steps:
     TEST_CACHE_ENABLE: false
   commands:
   - make test-oracle
-
-- name: test-oracle-schema
-  pull: never
-  image: golang:1.15
-  depends_on:
-  - test-oracle
-  volumes:
-  - name: cache
-    path: /go/pkg/mod
-  environment:
-    TEST_ORACLE_SCHEMA: xorm
-    TEST_ORACLE_HOST: oracle:1521
-    TEST_ORACLE_DBNAME: xe
-    TEST_ORACLE_USERNAME: system
-    TEST_ORACLE_PASSWORD: oracle
-    TEST_CACHE_ENABLE: true
-    SCHEMA: xorm
-  commands:
-  - make test-oracle
+  - TEST_ORACLE_SCHEMA=xorm make test-oracle
 
 volumes:
 - name: cache
