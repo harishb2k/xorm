@@ -891,7 +891,7 @@ type AfterInsertStruct struct {
 }
 
 func (a *AfterInsertStruct) AfterInsert() {
-	if a.Dialect.Features().SupportReturnIDWhenInsert && a.Id == 0 {
+	if a.Id == 0 {
 		panic("a.Id")
 	}
 }
