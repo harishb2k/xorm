@@ -22,6 +22,12 @@ type clickhouse struct {
 	baseDriver
 }
 
+func (p *clickhouse) Features() *DriverFeatures {
+	return &DriverFeatures{
+		SupportReturnInsertedID: false,
+	}
+}
+
 func (p *clickhouse) Parse(driverName, dataSourceName string) (*URI, error) {
 	return ParseClickHouse(dataSourceName)
 }
