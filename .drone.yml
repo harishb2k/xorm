@@ -31,9 +31,6 @@ steps:
     - make test-sqlite3
     - TEST_CACHE_ENABLE=true make test-sqlite3
     - TEST_QUOTE_POLICY=reserved make test-sqlite3
-    - make test-sqlite
-    - TEST_CACHE_ENABLE=true make test-sqlite
-    - TEST_QUOTE_POLICY=reserved make test-sqlite
 - name: test-mysql
   image: golang:1.15
   pull: never
@@ -83,9 +80,43 @@ services:
 
 ---
 kind: pipeline
-name: test-mysql8
+name: test-sqlite
 depends_on:
   - test-mysql
+environment:
+  GO111MODULE: "on"
+  GOPROXY: "https://goproxy.io"
+  CGO_ENABLED: 1
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-sqlite
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  commands:
+    - make test-sqlite
+    - TEST_CACHE_CONNSTR=redis://redis:6379 make test-sqlite
+    - TEST_QUOTE_POLICY=reserved make test-sqlite
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: redis
+  pull: default
+  image: redis:6.2.4
+
+---
+kind: pipeline
+name: test-mysql8
+depends_on:
+  - test-sqlite
 trigger:
   ref:
   - refs/heads/master
@@ -237,7 +268,6 @@ steps:
     TEST_MSSQL_PASSWORD: "yourStrong(!)Password"
   commands:
   - make test-mssql
-  - TEST_CACHE_CONNSTR=memory make test-mssql
   - TEST_QUOTE_POLICY=reserved make test-mssql
   - TEST_MSSQL_DEFAULT_VARCHAR=NVARCHAR TEST_MSSQL_DEFAULT_CHAR=NCHAR make test-mssql
 
