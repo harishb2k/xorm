@@ -334,7 +334,11 @@ func ColumnString(dialect Dialect, col *schemas.Column, includePrimaryKey bool) 
 	}
 
 	if !col.DefaultIsEmpty {
+<<<<<<< HEAD
 		if _, err := bd.WriteString(" DEFAULT "); err != nil {
+=======
+		if _, err := bd.WriteString("DEFAULT "); err != nil {
+>>>>>>> ab9b694 (Fix test)
 			return "", err
 		}
 		if col.Default == "" {

@@ -550,7 +550,10 @@ func (db *oracle) Features() *DialectFeatures {
 func (db *oracle) SQLType(c *schemas.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case schemas.Bit, schemas.TinyInt, schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.BigInt, schemas.Bool, schemas.Serial, schemas.BigSerial:
+	case schemas.Bit, schemas.TinyInt, schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.BigInt,
+		schemas.UnsignedBigInt, schemas.UnsignedBit, schemas.UnsignedInt,
+		schemas.Bool,
+		schemas.Serial, schemas.BigSerial:
 		res = "NUMBER"
 	case schemas.Binary, schemas.VarBinary, schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob, schemas.Bytea:
 		return schemas.Blob
@@ -802,7 +805,7 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		}
 
 		if _, ok := schemas.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, fmt.Errorf("Unknown colType %v %v", *dataType, col.SQLType)
+			return nil, nil, fmt.Errorf("unknown colType %v %v", *dataType, col.SQLType)
 		}
 
 		col.Length = dataLen
@@ -818,10 +821,6 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 	if rows.Err() != nil {
 		return nil, nil, rows.Err()
 	}
-
-	/*select *
-	from user_tab_comments
-	where Table_Name='用户表' */
 
 	return colSeq, cols, nil
 }
