@@ -54,6 +54,22 @@ const (
 	groupSession  sessionType = true
 )
 
+type cascadeMode int
+
+const (
+	cascadeCompitable cascadeMode = iota // load field beans with another SQL with no
+	cascadeEager                         // load field beans with another SQL
+	cascadeJoin                          // load field beans with join
+	cascadeLazy                          // don't load anything
+)
+
+type loadClosure struct {
+	Func       func(schemas.PK, *reflect.Value) error
+	pk         schemas.PK
+	fieldValue *reflect.Value
+	loaded     bool
+}
+
 // Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
@@ -86,6 +102,9 @@ type Session struct {
 
 	ctx         context.Context
 	sessionType sessionType
+
+	cascadeMode  cascadeMode
+	cascadeLevel int // load level
 }
 
 func newSessionID() string {
@@ -134,7 +153,9 @@ func newSession(engine *Engine) *Session {
 		lastSQL:     "",
 		lastSQLArgs: make([]interface{}, 0),
 
-		sessionType: engineSession,
+		sessionType:  engineSession,
+		cascadeMode:  cascadeCompitable,
+		cascadeLevel: 2,
 	}
 	if engine.logSessionID {
 		session.ctx = context.WithValue(session.ctx, log.SessionKey, session)
@@ -241,7 +262,7 @@ func (session *Session) Alias(alias string) *Session {
 
 // NoCascade indicate that no cascade load child object
 func (session *Session) NoCascade() *Session {
-	session.statement.UseCascade = false
+	session.cascadeMode = cascadeLazy
 	return session
 }
 
@@ -296,9 +317,15 @@ func (session *Session) Charset(charset string) *Session {
 
 // Cascade indicates if loading sub Struct
 func (session *Session) Cascade(trueOrFalse ...bool) *Session {
+	var mode = cascadeEager
 	if len(trueOrFalse) >= 1 {
-		session.statement.UseCascade = trueOrFalse[0]
+		if trueOrFalse[0] {
+			mode = cascadeEager
+		} else {
+			mode = cascadeLazy
+		}
 	}
+	session.cascadeMode = mode
 	return session
 }
 

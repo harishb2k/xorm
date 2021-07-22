@@ -8,7 +8,8 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/go-xorm/core"
+	"xorm.io/xorm/internal/utils"
+	"xorm.io/xorm/schemas"
 )
 
 // Load loads associated fields from database
@@ -23,6 +24,15 @@ func (session *Session) Load(beanOrSlices interface{}, cols ...string) error {
 		return session.loadGet(beanOrSlices, cols...)
 	}
 	return errors.New("unsupported load type, must struct or slice")
+}
+
+func isStringInSlice(s string, slice []string) bool {
+	for _, e := range slice {
+		if s == e {
+			return true
+		}
+	}
+	return false
 }
 
 // loadFind load 's belongs to tag field immedicatlly
@@ -43,12 +53,12 @@ func (session *Session) loadFind(slices interface{}, cols ...string) error {
 	if vv.Kind() == reflect.Ptr {
 		vv = vv.Elem()
 	}
-	tb, err := session.engine.autoMapType(vv)
+	tb, err := session.engine.tagParser.ParseWithCache(vv)
 	if err != nil {
 		return err
 	}
 
-	var pks = make(map[*core.Column][]interface{})
+	var pks = make(map[*schemas.Column][]interface{})
 	for i := 0; i < v.Len(); i++ {
 		ev := v.Index(i)
 
@@ -58,16 +68,13 @@ func (session *Session) loadFind(slices interface{}, cols ...string) error {
 			}
 
 			if col.AssociateTable != nil {
-				if col.AssociateType == core.AssociateBelongsTo {
+				if col.AssociateType == schemas.AssociateBelongsTo {
 					colV, err := col.ValueOfV(&ev)
 					if err != nil {
 						return err
 					}
 
-					pk, err := session.engine.idOfV(*colV)
-					if err != nil {
-						return err
-					}
+					vv := colV.Interface()
 					/*var colPtr reflect.Value
 					if colV.Kind() == reflect.Ptr {
 						colPtr = *colV
@@ -75,8 +82,8 @@ func (session *Session) loadFind(slices interface{}, cols ...string) error {
 						colPtr = colV.Addr()
 					}*/
 
-					if !isZero(pk[0]) {
-						pks[col] = append(pks[col], pk[0])
+					if !utils.IsZero(vv) {
+						pks[col] = append(pks[col], vv)
 					}
 				}
 			}
@@ -99,8 +106,8 @@ func (session *Session) loadGet(bean interface{}, cols ...string) error {
 		defer session.Close()
 	}
 
-	v := rValue(bean)
-	tb, err := session.engine.autoMapType(v)
+	v := reflect.Indirect(reflect.ValueOf(bean))
+	tb, err := session.engine.tagParser.ParseWithCache(v)
 	if err != nil {
 		return err
 	}
@@ -111,16 +118,13 @@ func (session *Session) loadGet(bean interface{}, cols ...string) error {
 		}
 
 		if col.AssociateTable != nil {
-			if col.AssociateType == core.AssociateBelongsTo {
+			if col.AssociateType == schemas.AssociateBelongsTo {
 				colV, err := col.ValueOfV(&v)
 				if err != nil {
 					return err
 				}
 
-				pk, err := session.engine.idOfV(*colV)
-				if err != nil {
-					return err
-				}
+				vv := colV.Interface()
 				var colPtr reflect.Value
 				if colV.Kind() == reflect.Ptr {
 					colPtr = *colV
@@ -128,8 +132,8 @@ func (session *Session) loadGet(bean interface{}, cols ...string) error {
 					colPtr = colV.Addr()
 				}
 
-				if !isZero(pk[0]) && session.cascadeLevel > 0 {
-					has, err := session.ID(pk).NoAutoCondition().get(colPtr.Interface())
+				if !utils.IsZero(vv) && session.cascadeLevel > 0 {
+					has, err := session.ID(vv).NoAutoCondition().get(colPtr.Interface())
 					if err != nil {
 						return err
 					}

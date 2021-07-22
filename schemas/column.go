@@ -22,8 +22,9 @@ const (
 type Column struct {
 	Name            string
 	TableName       string
-	FieldName       string // Available only when parsed from a struct
-	FieldIndex      []int  // Available only when parsed from a struct
+	FieldName       string       // Available only when parsed from a struct
+	FieldIndex      []int        // Available only when parsed from a struct
+	FieldType       reflect.Type // Available only when parsed from a struct
 	SQLType         SQLType
 	IsJSON          bool
 	Length          int
@@ -45,6 +46,8 @@ type Column struct {
 	DisableTimeZone bool
 	TimeZone        *time.Location // column specified time zone
 	Comment         string
+	AssociateType
+	AssociateTable *Table
 }
 
 // NewColumn creates a new column
@@ -71,6 +74,8 @@ func NewColumn(name, fieldName string, sqlType SQLType, len1, len2 int, nullable
 		DefaultIsEmpty:  true, // default should be no default
 		EnumOptions:     make(map[string]int),
 		Comment:         "",
+		AssociateType:   AssociateNone,
+		AssociateTable:  nil,
 	}
 }
 

@@ -401,13 +401,21 @@ func NoCacheTagHandler(ctx *Context) error {
 	return nil
 }
 
+func isStruct(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct || isPtrStruct(t)
+}
+
+func isPtrStruct(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+}
+
 // BelongsToTagHandler describes belongs_to tag handler
 func BelongsToTagHandler(ctx *Context) error {
 	if !isStruct(ctx.fieldValue.Type()) {
-		return errors.New("Tag belongs_to cannot be applied on non-struct field")
+		return errors.New("tag belongs_to cannot be applied on non-struct field")
 	}
 
-	ctx.col.AssociateType = core.AssociateBelongsTo
+	ctx.col.AssociateType = schemas.AssociateBelongsTo
 	var t reflect.Value
 	if ctx.fieldValue.Kind() == reflect.Struct {
 		t = ctx.fieldValue
@@ -419,17 +427,16 @@ func BelongsToTagHandler(ctx *Context) error {
 				t = ctx.fieldValue
 			}
 		} else {
-			return errors.New("Only struct or ptr to struct field could add belongs_to flag")
+			return errors.New("only struct or ptr to struct field could add belongs_to flag")
 		}
 	}
 
-	belongsT, err := ctx.engine.mapType(ctx.parsingTables, t)
+	belongsT, err := ctx.parser.ParseWithCache(t)
 	if err != nil {
 		return err
 	}
 	pks := belongsT.PKColumns()
 	if len(pks) != 1 {
-		panic("unsupported non or composited primary key cascade")
 		return errors.New("blongs_to only should be as a tag of table has one primary key")
 	}
 
@@ -437,7 +444,7 @@ func BelongsToTagHandler(ctx *Context) error {
 	ctx.col.SQLType = pks[0].SQLType
 
 	if len(ctx.col.Name) == 0 {
-		ctx.col.Name = ctx.engine.ColumnMapper.Obj2Table(ctx.col.FieldName) + "_id"
+		ctx.col.Name = ctx.parser.columnMapper.Obj2Table(ctx.col.FieldName) + "_id"
 	}
 	return nil
 }
