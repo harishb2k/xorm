@@ -176,12 +176,7 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 			if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
 				return nil, err
 			}
-		} /* else if statement.dialect.URI().DBType == schemas.ORACLE {
-			if _, err := buf.WriteString(fmt.Sprintf("; select %s.currval from dual",
-				dialects.OracleSeqName(tableName))); err != nil {
-				return nil, err
-			}
-		}*/
+		}
 	}
 
 	return buf, nil

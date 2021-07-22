@@ -512,7 +512,11 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 				return nil, nil, err
 			}
 			if session.engine.dialect.URI().DBType == schemas.ORACLE {
-				args = append(args, t)
+				if col.SQLType.IsNumeric() {
+					args = append(args, t.Unix())
+				} else {
+					args = append(args, t)
+				}
 			} else {
 				args = append(args, val)
 			}
