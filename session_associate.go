@@ -6,6 +6,7 @@ package xorm
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"xorm.io/xorm/internal/utils"
@@ -56,44 +57,76 @@ func (session *Session) loadFindSlice(v reflect.Value, cols ...string) error {
 		return err
 	}
 
-	var pks = make(map[*schemas.Column][]interface{})
+	type Va struct {
+		v   reflect.Value
+		pk  []interface{}
+		col *schemas.Column
+	}
+
+	var pks = make(map[*schemas.Column]*Va)
 	for i := 0; i < v.Len(); i++ {
 		ev := v.Index(i)
 
+		fmt.Println("1====", ev.Interface(), tb.Name, len(tb.Columns()))
+
 		for _, col := range tb.Columns() {
+			fmt.Println("====", cols, col.Name)
 			if len(cols) > 0 && !isStringInSlice(col.Name, cols) {
 				continue
 			}
 
-			if col.AssociateTable != nil {
-				if col.AssociateType == schemas.AssociateBelongsTo {
-					colV, err := col.ValueOfV(&ev)
-					if err != nil {
-						return err
-					}
+			fmt.Println("3------", col.Name, col.AssociateTable)
 
-					vv := colV.Interface()
-					/*var colPtr reflect.Value
-					if colV.Kind() == reflect.Ptr {
-						colPtr = *colV
-					} else {
-						colPtr = colV.Addr()
-					}*/
+			if col.AssociateTable == nil || col.AssociateType != schemas.AssociateBelongsTo {
+				continue
+			}
 
-					if !utils.IsZero(vv) {
-						pks[col] = append(pks[col], vv)
+			colV, err := col.ValueOfV(&ev)
+			if err != nil {
+				return err
+			}
+
+			pkCols := col.AssociateTable.PKColumns()
+			pkV, err := pkCols[0].ValueOfV(colV)
+			if err != nil {
+				return err
+			}
+			vv := pkV.Interface()
+
+			fmt.Println("2====", vv)
+
+			if !utils.IsZero(vv) {
+				va, ok := pks[col]
+				if !ok {
+					va = &Va{
+						v:   ev,
+						col: pkCols[0],
 					}
+					pks[col] = va
 				}
+				va.pk = append(va.pk, vv)
 			}
 		}
 	}
 
-	for col, pk := range pks {
-		slice := reflect.MakeSlice(col.FieldType, 0, len(pk))
-		err = session.In(col.Name, pk...).find(slice.Addr().Interface())
+	for col, va := range pks {
+		slice := reflect.MakeSlice(reflect.SliceOf(col.FieldType), 0, len(va.pk))
+		err = session.In(va.col.Name, va.pk...).find(slice.Interface())
 		if err != nil {
 			return err
 		}
+
+		/*vv, err := col.ValueOfV(&va.v)
+			if err != nil {
+				return err
+			}
+			vv.Set()
+
+		for i := 0; i < slice.Len(); i++ {
+
+
+			va.col.ValueOfV(slice.Index(i))
+		}*/
 	}
 	return nil
 }

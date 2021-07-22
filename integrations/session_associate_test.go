@@ -169,7 +169,7 @@ func TestBelongsTo_Find(t *testing.T) {
 	assert.Equal(t, "face1", noses2[0].Face.Name)
 	assert.Equal(t, "face2", noses2[1].Face.Name)
 
-	err = testEngine.Load(noses1, "face")
+	err = testEngine.Load(noses1, "face_id")
 	assert.NoError(t, err)
 	assert.Equal(t, "face1", noses1[0].Face.Name)
 	assert.Equal(t, "face2", noses1[1].Face.Name)
