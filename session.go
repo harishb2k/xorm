@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -631,9 +630,7 @@ func (session *Session) convertBeanField(col *schemas.Column, fieldValue *reflec
 			}
 			fieldValue.Set(reflect.ValueOf(v).Elem().Convert(fieldType))
 			return nil
-		}
-
-		if fieldType.ConvertibleTo(schemas.TimeType) {
+		} else if fieldType.ConvertibleTo(schemas.TimeType) {
 			dbTZ := session.engine.DatabaseTZ
 			if col.TimeZone != nil {
 				dbTZ = col.TimeZone
@@ -647,42 +644,35 @@ func (session *Session) convertBeanField(col *schemas.Column, fieldValue *reflec
 			fieldValue.Set(reflect.ValueOf(*t).Convert(fieldType))
 			return nil
 		} else if nulVal, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
-			err := nulVal.Scan(scanResult)
-			if err == nil {
-				return nil
-			}
-			session.engine.logger.Errorf("sql.Sanner error: %v", err)
-		} else if session.statement.UseCascade {
-			table, err := session.engine.tagParser.ParseWithCache(*fieldValue)
-			if err != nil {
-				return err
-			}
-
-			if len(table.PrimaryKeys) != 1 {
-				return errors.New("unsupported non or composited primary key cascade")
-			}
-			var pk = make(schemas.PK, len(table.PrimaryKeys))
+			return nulVal.Scan(scanResult)
+		} else if session.cascadeLevel > 0 && ((col.AssociateType == schemas.AssociateNone &&
+			session.cascadeMode == cascadeCompitable) ||
+			(col.AssociateType == schemas.AssociateBelongsTo &&
+				session.cascadeMode == cascadeEager)) {
+			var pk = make(schemas.PK, len(col.AssociateTable.PrimaryKeys))
+			var err error
 			pk[0], err = asKind(vv, reflect.TypeOf(scanResult))
 			if err != nil {
 				return err
 			}
 
-			if !pk.IsZero() {
-				// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
-				// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
-				// property to be fetched lazily
-				structInter := reflect.New(fieldValue.Type())
-				has, err := session.ID(pk).NoCascade().get(structInter.Interface())
-				if err != nil {
-					return err
-				}
-				if has {
-					fieldValue.Set(structInter.Elem())
-				} else {
-					return errors.New("cascade obj is not exist")
-				}
-			}
+			session.afterProcessors = append(session.afterProcessors, executedProcessor{
+				fun: func(session *Session, bean interface{}) error {
+					fieldValue := bean.(*reflect.Value)
+					return session.getStructByPK(pk, fieldValue)
+				},
+				session: session,
+				bean:    fieldValue,
+			})
+			session.cascadeLevel--
 			return nil
+		} else if col.AssociateType == schemas.AssociateBelongsTo {
+			pkCols := col.AssociateTable.PKColumns()
+			colV, err := pkCols[0].ValueOfV(fieldValue)
+			if err != nil {
+				return err
+			}
+			return convertAssignV(*colV, scanResult)
 		}
 	} // switch fieldType.Kind()
 

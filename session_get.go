@@ -280,6 +280,42 @@ func (session *Session) getMap(rows *core.Rows, types []*sql.ColumnType, fields 
 	}
 }
 
+func (session *Session) getStructByPK(pk schemas.PK, fieldValue *reflect.Value) error {
+	if pk.IsZero() {
+		return errors.New("getStructByPK: primary key is zero")
+	}
+
+	var structInter reflect.Value
+	if fieldValue.Kind() == reflect.Ptr {
+		if fieldValue.IsNil() {
+			structInter = reflect.New(fieldValue.Type().Elem())
+		} else {
+			structInter = *fieldValue
+		}
+	} else {
+		structInter = fieldValue.Addr()
+	}
+
+	has, err := session.ID(pk).NoAutoCondition().get(structInter.Interface())
+	if err != nil {
+		return err
+	}
+	if !has {
+		return errors.New("cascade obj is not exist")
+	}
+	if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+		fieldValue.Set(structInter)
+		fmt.Println("getByPK value ptr:", fieldValue.Interface())
+		return nil
+	} else if fieldValue.Kind() == reflect.Struct {
+		fieldValue.Set(structInter.Elem())
+		fmt.Println("getByPK value:", fieldValue.Interface())
+		return nil
+	}
+	return errors.New("set value failed")
+
+}
+
 func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
 	// if has no reftable, then don't use cache currently
 	if !session.canCache() {
