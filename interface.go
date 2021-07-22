@@ -24,6 +24,7 @@ type Interface interface {
 	Alias(alias string) *Session
 	Asc(colNames ...string) *Session
 	BufferSize(size int) *Session
+	Cascade(trueOrFalse ...bool) *Session
 	Cols(columns ...string) *Session
 	Count(...interface{}) (int64, error)
 	CreateIndexes(bean interface{}) error
@@ -48,6 +49,7 @@ type Interface interface {
 	IsTableExist(beanOrTableName interface{}) (bool, error)
 	Iterate(interface{}, IterFunc) error
 	Limit(int, ...int) *Session
+	Load(beanOrSlices interface{}, cols ...string) error
 	MustCols(columns ...string) *Session
 	NoAutoCondition(...bool) *Session
 	NotIn(string, ...interface{}) *Session

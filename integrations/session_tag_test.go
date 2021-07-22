@@ -11,16 +11,18 @@ import (
 )
 
 func TestExtendsTag(t *testing.T) {
-	assert.NoError(t, prepareEngine())
+	assert.NoError(t, PrepareEngine())
 
-	table := testEngine.TableInfo(new(Userdetail))
+	table, err := testEngine.TableInfo(new(Userdetail))
+	assert.NoError(t, err)
 	assert.NotNil(t, table)
 	assert.EqualValues(t, 3, len(table.ColumnsSeq()))
 	assert.EqualValues(t, "id", table.ColumnsSeq()[0])
 	assert.EqualValues(t, "intro", table.ColumnsSeq()[1])
 	assert.EqualValues(t, "profile", table.ColumnsSeq()[2])
 
-	table = testEngine.TableInfo(new(Userinfo))
+	table, err = testEngine.TableInfo(new(Userinfo))
+	assert.NoError(t, err)
 	assert.NotNil(t, table)
 	assert.EqualValues(t, 8, len(table.ColumnsSeq()))
 	assert.EqualValues(t, "id", table.ColumnsSeq()[0])
@@ -32,7 +34,8 @@ func TestExtendsTag(t *testing.T) {
 	assert.EqualValues(t, "avatar", table.ColumnsSeq()[6])
 	assert.EqualValues(t, "is_man", table.ColumnsSeq()[7])
 
-	table = testEngine.TableInfo(new(UserAndDetail))
+	table, err = testEngine.TableInfo(new(UserAndDetail))
+	assert.NoError(t, err)
 	assert.NotNil(t, table)
 	assert.EqualValues(t, 11, len(table.ColumnsSeq()))
 	assert.EqualValues(t, "id", table.ColumnsSeq()[0])

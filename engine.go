@@ -703,6 +703,13 @@ func (engine *Engine) AllCols() *Session {
 	return session.AllCols()
 }
 
+// Load loads associated fields from database
+func (engine *Engine) Load(beanOrSlices interface{}, cols ...string) error {
+	session := engine.NewSession()
+	session.isAutoClose = true
+	return session.Load(beanOrSlices, cols...)
+}
+
 // MustCols specify some columns must use even if they are empty
 func (engine *Engine) MustCols(columns ...string) *Session {
 	session := engine.NewSession()
