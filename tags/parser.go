@@ -167,6 +167,7 @@ func (parser *Parser) parseFieldWithNoTag(fieldIndex int, field reflect.StructFi
 		field.Name, sqlType, sqlType.DefaultLength,
 		sqlType.DefaultLength2, true)
 	col.FieldIndex = []int{fieldIndex}
+	col.FieldType = fieldValue.Type()
 
 	if field.Type.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
 		col.IsAutoIncrement = true
@@ -186,6 +187,7 @@ func (parser *Parser) parseFieldWithTags(table *schemas.Table, fieldIndex int, f
 		MapType:         schemas.TWOSIDES,
 		Indexes:         make(map[string]int),
 		DefaultIsEmpty:  true,
+		FieldType:       fieldValue.Type(),
 	}
 
 	var ctx = Context{
