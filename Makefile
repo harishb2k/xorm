@@ -52,8 +52,9 @@ TEST_TIDB_PASSWORD ?=
 TEST_CACHE_ENABLE ?= false
 TEST_QUOTE_POLICY ?= always
 
-DB2HOME := $(GOPATH)/pkg/mod/github.com/ibmdb/go_ibm_db@v0.3.0/installer
-DB2_DRIVER_DIR := $(DB2HOME)/clidriver
+DB2ORG := $(GOPATH)/pkg/mod/github.com/ibmdb
+DB2HOME := $(DB2ORG)/go_ibm_db@v0.4.1/installer
+DB2_DRIVER_DIR := $(DB2ORG)/clidriver
 
 .PHONY: all
 all: build
@@ -156,23 +157,23 @@ test-cockroach\#%: go-check
 	-ignore_update_limit=true -coverprofile=cockroach.$(TEST_COCKROACH_SCHEMA).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 $(DB2_DRIVER_DIR):
-	go get -d -v github.com/ibmdb/go_ibm_db@v0.3.0
+	go get -d -v github.com/ibmdb/go_ibm_db
 	cd $(DB2HOME) && go run setup.go
 
 .PNONY: test-db2
 test-db2: go-check $(DB2_DRIVER_DIR)
-	CGO_CFLAGS=-I$(DB2HOME)/clidriver/include \
-	CGO_LDFLAGS=-L$(DB2HOME)/clidriver/lib \
-	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2HOME)/clidriver/lib \
+	CGO_CFLAGS=-I$(DB2_DRIVER_DIR)/include \
+	CGO_LDFLAGS=-L$(DB2_DRIVER_DIR)/lib \
+	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2_DRIVER_DIR)/lib \
 	$(GO) test -race -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
 	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
 	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PNONY: test-db2\#%
 test-db2\#%: go-check
-	CGO_CFLAGS=-I$(DB2HOME)/clidriver/include \
-	CGO_LDFLAGS=-L$(DB2HOME)/clidriver/lib \
-	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2HOME)/clidriver/lib \
+	CGO_CFLAGS=-I$(DB2_DRIVER_DIR)/include \
+	CGO_LDFLAGS=-L$(DB2_DRIVER_DIR)/lib \
+	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2_DRIVER_DIR)/lib \
 	$(GO) test -race -run $* -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
 	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
 	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
@@ -269,8 +270,7 @@ test-sqlite-schema: go-check
 .PHONY: test-sqlite\#%
 test-sqlite\#%: go-check
 	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -cache=$(TEST_CACHE_ENABLE) -db=sqlite -conn_str="./test.db?cache=shared&mode=rwc" \
-	 -quote=$(TEST_QUOTE_POLICY) -coverprofile=sqlite.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
-
+	 -quote=$(TEST_QUOTE_POLICY) -coverprofile=sqlite.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomicattt
 
 .PNONY: test-tidb
 test-tidb: go-check
