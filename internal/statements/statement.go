@@ -974,7 +974,14 @@ func (statement *Statement) convertSQLOrArgs(sqlOrArgs ...interface{}) (string, 
 						return "", nil, err
 					}
 					if r != nil {
-						newArgs = append(newArgs, string(r))
+						// for nvarchar column on mssql, bytes have to be converted as ucs-2 external of driver
+						// for binary column, a string will be converted as bytes directly. So we have to
+						// convert bytes as string
+						if statement.dialect.URI().DBType == schemas.MSSQL {
+							newArgs = append(newArgs, string(r))
+						} else {
+							newArgs = append(newArgs, r)
+						}
 					} else {
 						newArgs = append(newArgs, nil)
 					}
