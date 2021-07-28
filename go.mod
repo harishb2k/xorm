@@ -13,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ziutek/mymysql v1.5.4
+	golang.org/x/text v0.3.3
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	modernc.org/sqlite v1.11.2
 	xorm.io/builder v0.3.9

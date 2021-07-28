@@ -973,7 +973,11 @@ func (statement *Statement) convertSQLOrArgs(sqlOrArgs ...interface{}) (string, 
 					if err != nil {
 						return "", nil, err
 					}
-					newArgs = append(newArgs, r)
+					if r != nil {
+						newArgs = append(newArgs, string(r))
+					} else {
+						newArgs = append(newArgs, nil)
+					}
 				} else {
 					newArgs = append(newArgs, arg)
 				}
