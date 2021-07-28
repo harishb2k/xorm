@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"xorm.io/xorm/core"
+	"xorm.io/xorm/internal/convert"
 	"xorm.io/xorm/schemas"
 )
 
@@ -711,4 +712,36 @@ func (p *odbcDriver) GenScanResult(colType string) (interface{}, error) {
 		var r sql.RawBytes
 		return &r, nil
 	}
+}
+
+func (b *odbcDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.ColumnType, vv ...interface{}) error {
+	var scanResults = make([]interface{}, 0, len(types))
+	var replaces = make([]bool, 0, len(types))
+	var err error
+	for i, v := range vv {
+		var replaced bool
+		var scanResult interface{}
+		if types[i].DatabaseTypeName() == "NVARCHAR" {
+			scanResult = &sql.RawBytes{}
+			replaced = true
+		} else {
+			scanResult = v
+		}
+
+		scanResults = append(scanResults, scanResult)
+		replaces = append(replaces, replaced)
+	}
+
+	if err = rows.Scan(scanResults...); err != nil {
+		return err
+	}
+
+	for i, replaced := range replaces {
+		if replaced {
+			if err = convert.Assign(vv[i], scanResults[i], ctx.DBLocation, ctx.UserLocation); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
