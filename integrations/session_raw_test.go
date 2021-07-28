@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"xorm.io/xorm/internal/convert"
+
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm/convert"
 )
 
 func TestExecAndQuery(t *testing.T) {
