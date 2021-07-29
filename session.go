@@ -672,7 +672,7 @@ func (session *Session) convertBeanField(col *schemas.Column, fieldValue *reflec
 			if err != nil {
 				return err
 			}
-			return convertAssignV(*colV, scanResult)
+			return convert.AssignValue(*colV, scanResult)
 		}
 	} // switch fieldType.Kind()
 
