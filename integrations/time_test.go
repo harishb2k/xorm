@@ -469,6 +469,16 @@ func TestCustomTimeUserDeleted(t *testing.T) {
 	assert.EqualValues(t, user3.DeletedAt.Unix(), user4.DeletedAt.Unix())
 	assert.EqualValues(t, formatTime(time.Time(user3.DeletedAt)), formatTime(time.Time(user4.DeletedAt)))
 	fmt.Println("user3", user3.DeletedAt, user4.DeletedAt)
+
+	var users []UserDeleted3
+	err = testEngine.Where("created_at < ?", time.Now()).Find(&users)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(users))
+
+	users = make([]UserDeleted3, 0)
+	err = testEngine.Where("created_at > ?", time.Now()).Find(&users)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, len(users))
 }
 
 func TestCustomTimeUserDeletedDiffLoc(t *testing.T) {
