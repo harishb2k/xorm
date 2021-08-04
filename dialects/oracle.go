@@ -612,9 +612,9 @@ func (db *oracle) CreateTableSQL(table *schemas.Table, tableName string) ([]stri
 
 	for _, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		/*if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += col.String(b.dialect)
-		} else {*/
+		if !col.Creatable() { // ignore <- tag column
+			continue
+		}
 		s, _ := ColumnString(db, col, false)
 		sql += s
 		// }

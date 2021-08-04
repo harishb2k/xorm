@@ -301,6 +301,10 @@ func (db *sqlite3) CreateTableSQL(table *schemas.Table, tableName string) ([]str
 
 		for _, colName := range table.ColumnsSeq() {
 			col := table.GetColumn(colName)
+			if !col.Creatable() { // ignore <- tag column
+				continue
+			}
+
 			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
 			sql += s
 			sql = strings.TrimSpace(sql)

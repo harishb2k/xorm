@@ -74,6 +74,11 @@ func NewColumn(name, fieldName string, sqlType SQLType, len1, len2 int, nullable
 	}
 }
 
+// Creatable returns true if the column needs to be created when sync
+func (col *Column) Creatable() bool {
+	return col.MapType != ONLYFROMDB
+}
+
 // ValueOf returns column's filed of struct's value
 func (col *Column) ValueOf(bean interface{}) (*reflect.Value, error) {
 	dataStruct := reflect.Indirect(reflect.ValueOf(bean))
