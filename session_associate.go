@@ -110,8 +110,14 @@ func (session *Session) loadFindSlice(v reflect.Value, cols ...string) error {
 	}
 
 	for col, va := range pks {
-		slice := reflect.MakeSlice(reflect.SliceOf(col.FieldType), 0, len(va.pk))
-		err = session.In(va.col.Name, va.pk...).find(slice.Interface())
+		//slice := reflect.New(reflect.SliceOf(col.FieldType))
+		pkCols := col.AssociateTable.PKColumns()
+		if len(pkCols) != 1 {
+			return fmt.Errorf("unsupported primary key number")
+		}
+		mp := reflect.MakeMap(reflect.MapOf(pkCols[0].FieldType, col.FieldType))
+		//slice := reflect.MakeSlice(, 0, len(va.pk))
+		err = session.In(va.col.Name, va.pk...).find(mp.Addr().Interface())
 		if err != nil {
 			return err
 		}
