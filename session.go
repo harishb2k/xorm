@@ -649,7 +649,20 @@ func (session *Session) convertBeanField(col *schemas.Column, fieldValue *reflec
 			session.cascadeMode == cascadeCompitable) ||
 			(col.AssociateType == schemas.AssociateBelongsTo &&
 				session.cascadeMode == cascadeEager)) {
-			var pk = make(schemas.PK, len(col.AssociateTable.PrimaryKeys))
+			var associateTable *schemas.Table
+			if col.AssociateType == schemas.AssociateNone && col.AssociateTable == nil {
+				var err error
+				associateTable, err = session.engine.tagParser.ParseWithCache(*fieldValue)
+				if err != nil {
+					return err
+				}
+			} else {
+				associateTable = col.AssociateTable
+			}
+
+			fmt.Println("=====", associateTable)
+
+			var pk = make(schemas.PK, len(associateTable.PrimaryKeys))
 			var err error
 			pk[0], err = asKind(vv, reflect.TypeOf(scanResult))
 			if err != nil {
@@ -659,14 +672,16 @@ func (session *Session) convertBeanField(col *schemas.Column, fieldValue *reflec
 			session.afterProcessors = append(session.afterProcessors, executedProcessor{
 				fun: func(session *Session, bean interface{}) error {
 					fieldValue := bean.(*reflect.Value)
+					fmt.Println("3333333")
 					return session.getStructByPK(pk, fieldValue)
 				},
 				session: session,
 				bean:    fieldValue,
 			})
 			session.cascadeLevel--
+			fmt.Println("222222")
 			return nil
-		} else if col.AssociateType == schemas.AssociateBelongsTo {
+		} else if col.AssociateType == schemas.AssociateBelongsTo && session.cascadeMode == cascadeLazy {
 			pkCols := col.AssociateTable.PKColumns()
 			colV, err := pkCols[0].ValueOfV(fieldValue)
 			if err != nil {
