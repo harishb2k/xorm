@@ -48,40 +48,45 @@ func (session *Session) loadFindSlice(v reflect.Value, cols ...string) error {
 		return nil
 	}
 
-	vv := v.Index(0)
-	if vv.Kind() == reflect.Ptr {
-		vv = vv.Elem()
+	tableValue := v.Index(0)
+	if tableValue.Kind() == reflect.Ptr {
+		tableValue = tableValue.Elem()
 	}
-	tb, err := session.engine.tagParser.ParseWithCache(vv)
+	tb, err := session.engine.tagParser.ParseWithCache(tableValue)
 	if err != nil {
 		return err
 	}
 
 	type Va struct {
-		v   reflect.Value
+		v   []reflect.Value
 		pk  []interface{}
 		col *schemas.Column
 	}
 
 	var pks = make(map[*schemas.Column]*Va)
+	for _, col := range tb.Columns() {
+		if col.AssociateTable == nil || col.AssociateType != schemas.AssociateBelongsTo {
+			continue
+		}
+
+		if len(cols) > 0 && !isStringInSlice(col.Name, cols) {
+			continue
+		}
+
+		pkCols := col.AssociateTable.PKColumns()
+		if len(pkCols) != 1 {
+			return fmt.Errorf("unsupported primary key number")
+		}
+
+		pks[col] = &Va{
+			col: pkCols[0],
+		}
+	}
+
 	for i := 0; i < v.Len(); i++ {
-		ev := v.Index(i)
-
-		fmt.Println("1====", ev.Interface(), tb.Name, len(tb.Columns()))
-
-		for _, col := range tb.Columns() {
-			fmt.Println("====", cols, col.Name)
-			if len(cols) > 0 && !isStringInSlice(col.Name, cols) {
-				continue
-			}
-
-			fmt.Println("3------", col.Name, col.AssociateTable)
-
-			if col.AssociateTable == nil || col.AssociateType != schemas.AssociateBelongsTo {
-				continue
-			}
-
-			colV, err := col.ValueOfV(&ev)
+		value := v.Index(i)
+		for col, va := range pks {
+			colV, err := col.ValueOfV(&value)
 			if err != nil {
 				return err
 			}
@@ -92,47 +97,33 @@ func (session *Session) loadFindSlice(v reflect.Value, cols ...string) error {
 				return err
 			}
 			vv := pkV.Interface()
-
-			fmt.Println("2====", vv)
-
-			if !utils.IsZero(vv) {
-				va, ok := pks[col]
-				if !ok {
-					va = &Va{
-						v:   ev,
-						col: pkCols[0],
-					}
-					pks[col] = va
-				}
+			if !utils.IsZero(vv) { // TODO: duplicate primary key
+				va.v = append(va.v, *colV)
 				va.pk = append(va.pk, vv)
 			}
 		}
 	}
 
 	for col, va := range pks {
-		//slice := reflect.New(reflect.SliceOf(col.FieldType))
 		pkCols := col.AssociateTable.PKColumns()
-		if len(pkCols) != 1 {
-			return fmt.Errorf("unsupported primary key number")
-		}
 		mp := reflect.MakeMap(reflect.MapOf(pkCols[0].FieldType, col.FieldType))
-		//slice := reflect.MakeSlice(, 0, len(va.pk))
-		err = session.In(va.col.Name, va.pk...).find(mp.Addr().Interface())
+		x := reflect.New(mp.Type())
+		x.Elem().Set(mp)
+
+		err = session.In(va.col.Name, va.pk...).find(x.Interface())
 		if err != nil {
 			return err
 		}
 
-		/*vv, err := col.ValueOfV(&va.v)
+		for _, v := range va.v {
+			pkCols := col.AssociateTable.PKColumns()
+			pkV, err := pkCols[0].ValueOfV(&v)
 			if err != nil {
 				return err
 			}
-			vv.Set()
 
-		for i := 0; i < slice.Len(); i++ {
-
-
-			va.col.ValueOfV(slice.Index(i))
-		}*/
+			v.Set(mp.MapIndex(*pkV))
+		}
 	}
 	return nil
 }
