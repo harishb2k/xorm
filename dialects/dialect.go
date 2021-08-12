@@ -32,10 +32,13 @@ type URI struct {
 
 // SetSchema set schema
 func (uri *URI) SetSchema(schema string) {
-	// hack me
 	if uri.DBType == schemas.POSTGRES {
 		uri.Schema = strings.TrimSpace(schema)
 	}
+}
+
+type DialectFeatures struct {
+	DefaultClause string // default key word
 }
 
 // Dialect represents a kind of database
@@ -43,6 +46,7 @@ type Dialect interface {
 	Init(*URI) error
 	URI() *URI
 	Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error)
+	Features() *DialectFeatures
 
 	SQLType(*schemas.Column) string
 	Alias(string) string       // return what a sql type's alias of
@@ -101,6 +105,12 @@ func (db *Base) Init(dialect Dialect, uri *URI) error {
 // URI returns the uri of database
 func (db *Base) URI() *URI {
 	return db.uri
+}
+
+func (db *Base) Features() *DialectFeatures {
+	return &DialectFeatures{
+		DefaultClause: "DEFAULT",
+	}
 }
 
 // DropTableSQL returns drop table SQL
@@ -253,43 +263,46 @@ func ColumnString(dialect Dialect, col *schemas.Column, includePrimaryKey bool) 
 		return "", err
 	}
 
-	if err := bd.WriteByte(' '); err != nil {
-		return "", err
-	}
-
 	if includePrimaryKey && col.IsPrimaryKey {
-		if _, err := bd.WriteString("PRIMARY KEY "); err != nil {
+		if _, err := bd.WriteString(" PRIMARY KEY"); err != nil {
 			return "", err
 		}
 
 		if col.IsAutoIncrement {
-			if _, err := bd.WriteString(dialect.AutoIncrStr()); err != nil {
+			if err := bd.WriteByte(' '); err != nil {
 				return "", err
 			}
-			if err := bd.WriteByte(' '); err != nil {
+			if _, err := bd.WriteString(dialect.AutoIncrStr()); err != nil {
 				return "", err
 			}
 		}
 	}
 
 	if col.Default != "" {
-		if _, err := bd.WriteString("DEFAULT "); err != nil {
+		if err := bd.WriteByte(' '); err != nil {
 			return "", err
 		}
-		if _, err := bd.WriteString(col.Default); err != nil {
+		if _, err := bd.WriteString(dialect.Features().DefaultClause); err != nil {
 			return "", err
 		}
 		if err := bd.WriteByte(' '); err != nil {
 			return "", err
 		}
+		if _, err := bd.WriteString(col.Default); err != nil {
+			return "", err
+		}
+	}
+
+	if err := bd.WriteByte(' '); err != nil {
+		return "", err
 	}
 
 	if col.Nullable {
-		if _, err := bd.WriteString("NULL "); err != nil {
+		if _, err := bd.WriteString("NULL"); err != nil {
 			return "", err
 		}
 	} else {
-		if _, err := bd.WriteString("NOT NULL "); err != nil {
+		if _, err := bd.WriteString("NOT NULL"); err != nil {
 			return "", err
 		}
 	}

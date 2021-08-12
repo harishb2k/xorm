@@ -126,7 +126,7 @@ func TestDump(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, sess.Commit())
 
-	for _, tp := range []schemas.DBType{schemas.SQLITE, schemas.MYSQL, schemas.POSTGRES, schemas.MSSQL} {
+	for _, tp := range []schemas.DBType{schemas.SQLITE, schemas.MYSQL, schemas.POSTGRES, schemas.MSSQL, schemas.DB2} {
 		name := fmt.Sprintf("dump_%v.sql", tp)
 		t.Run(name, func(t *testing.T) {
 			assert.NoError(t, testEngine.DumpAllToFile(name, tp))
