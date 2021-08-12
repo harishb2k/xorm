@@ -61,7 +61,7 @@ func (db *db2) SQLType(c *schemas.Column) string {
 		res = schemas.BigInt
 	case schemas.UnsignedInt:
 		res = schemas.BigInt
-	case schemas.Bit:
+	case schemas.Bit, schemas.Bool, schemas.Boolean:
 		res = schemas.Boolean
 		return res
 	case schemas.Binary, schemas.VarBinary:
@@ -82,10 +82,6 @@ func (db *db2) SQLType(c *schemas.Column) string {
 		res = t
 	}
 
-	if strings.EqualFold(res, "bool") {
-		// for bool, we don't need length information
-		return res
-	}
 	hasLen1 := (c.Length > 0)
 	hasLen2 := (c.Length2 > 0)
 

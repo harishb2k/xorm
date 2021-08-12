@@ -20,3 +20,12 @@ func SliceEq(left, right []string) bool {
 	}
 	return true
 }
+
+func IndexSlice(s []string, c string) int {
+	for i, ss := range s {
+		if c == ss {
+			return i
+		}
+	}
+	return -1
+}
