@@ -4,7 +4,7 @@
 
 // +build db2
 
-package xorm
+package integrations
 
 import (
 	_ "github.com/ibmdb/go_ibm_db"

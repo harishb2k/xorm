@@ -162,19 +162,13 @@ $(DB2_DRIVER_DIR):
 
 .PNONY: test-db2
 test-db2: go-check $(DB2_DRIVER_DIR)
-	CGO_CFLAGS=-I$(DB2_DRIVER_DIR)/include \
-	CGO_LDFLAGS=-L$(DB2_DRIVER_DIR)/lib \
-	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2_DRIVER_DIR)/lib \
-	$(GO) test -race -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
+	$(GO) test $(INTEGRATION_PACKAGES) -v -tags=db2 -db=go_ibm_db -cache=$(TEST_CACHE_ENABLE) \
 	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
 	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PNONY: test-db2\#%
 test-db2\#%: go-check
-	CGO_CFLAGS=-I$(DB2_DRIVER_DIR)/include \
-	CGO_LDFLAGS=-L$(DB2_DRIVER_DIR)/lib \
-	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(DB2_DRIVER_DIR)/lib \
-	$(GO) test -race -run $* -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
+	$(GO) test $(INTEGRATION_PACKAGES) -v -run $* -db=go_ibm_db -tags=db2 -cache=$(TEST_CACHE_ENABLE) \
 	-conn_str="HOSTNAME=$(TEST_DB2_HOST);DATABASE=$(TEST_DB2_DBNAME);PORT=$(TEST_DB2_PORT);UID=$(TEST_DB2_USERNAME);PWD=$(TEST_DB2_PASSWORD)" \
 	-coverprofile=db2.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 

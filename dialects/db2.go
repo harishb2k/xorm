@@ -57,6 +57,10 @@ func (db *db2) SQLType(c *schemas.Column) string {
 	case schemas.TinyInt:
 		res = schemas.SmallInt
 		return res
+	case schemas.UnsignedBigInt:
+		res = schemas.BigInt
+	case schemas.UnsignedInt:
+		res = schemas.BigInt
 	case schemas.Bit:
 		res = schemas.Boolean
 		return res
@@ -180,9 +184,9 @@ func (db *db2) SetQuotePolicy(quotePolicy QuotePolicy) {
 
 func (db *db2) IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error) {
 	if len(db.uri.Schema) == 0 {
-		return db.HasRecords(queryer, ctx, `SELECT tablename FROM pg_tables WHERE tablename = ?`, tableName)
+		return db.HasRecords(queryer, ctx, `SELECT tabname FROM syscat.tables WHERE tabname = ?`, tableName)
 	}
-	return db.HasRecords(queryer, ctx, `SELECT tablename FROM pg_tables WHERE schemaname = ? AND tablename = ?`,
+	return db.HasRecords(queryer, ctx, `SELECT tabname FROM syscat.tables WHERE tabschema = ? AND tabname = ?`,
 		db.uri.Schema, tableName,
 	)
 }
@@ -194,6 +198,12 @@ func (db *db2) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	}
 	return fmt.Sprintf("alter table %s.%s ALTER COLUMN %s TYPE %s",
 		db.uri.Schema, tableName, col.Name, db.SQLType(col))
+}
+
+// DropTableSQL returns drop table SQL
+func (db *db2) DropTableSQL(tableName string) (string, bool) {
+	quote := db.Quoter().Quote
+	return fmt.Sprintf("DROP TABLE %s", quote(tableName)), false
 }
 
 func (db *db2) DropIndexSQL(tableName string, index *schemas.Index) string {
