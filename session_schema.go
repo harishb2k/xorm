@@ -174,7 +174,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 		}
 	}
 
-	sqlStrs, checkIfExist := session.engine.dialect.DropTableSQL(tableName, autoIncrementCol)
+	sqlStr, checkIfExist := session.engine.dialect.DropTableSQL(tableName, autoIncrementCol)
 	if !checkIfExist {
 		exist, err := session.engine.dialect.IsTableExist(session.getQueryer(), session.ctx, tableName)
 		if err != nil {
@@ -189,7 +189,10 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	if _, err := session.exec(sqlStr); err != nil {
 		return err
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1805a60 (Fix test)
 	if session.engine.dialect.Features().AutoincrMode == dialects.IncrAutoincrMode {
 		return nil
 	}

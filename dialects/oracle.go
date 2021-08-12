@@ -598,6 +598,14 @@ func (db *oracle) ColumnTypeKind(t string) int {
 	}
 }
 
+func (db *oracle) IsSequenceExist(ctx context.Context, queryer core.Queryer, seqName string) (bool, error) {
+	var cnt int
+	if err := queryer.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_sequences WHERE sequence_name = :1", seqName).Scan(&cnt); err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
 func (db *oracle) AutoIncrStr() string {
 	return "AUTO_INCREMENT"
 }
@@ -607,14 +615,8 @@ func (db *oracle) IsReserved(name string) bool {
 	return ok
 }
 
-func (db *oracle) DropTableSQL(tableName, autoincrCol string) ([]string, bool) {
-	var sqls = []string{
-		fmt.Sprintf("DROP TABLE %s", db.quoter.Quote(tableName)),
-	}
-	if autoincrCol != "" {
-		sqls = append(sqls, fmt.Sprintf("DROP SEQUENCE %s", OracleSeqName(tableName)))
-	}
-	return sqls, false
+func (db *oracle) DropTableSQL(tableName, autoincrCol string) (string, bool) {
+	return fmt.Sprintf("DROP TABLE %s", db.quoter.Quote(tableName)), false
 }
 
 func (db *oracle) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {

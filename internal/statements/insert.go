@@ -168,14 +168,12 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 		}
 	}
 
-	if len(table.AutoIncrement) > 0 {
-		if statement.dialect.URI().DBType == schemas.POSTGRES {
-			if _, err := buf.WriteString(" RETURNING "); err != nil {
-				return nil, err
-			}
-			if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
-				return nil, err
-			}
+	if len(table.AutoIncrement) > 0 && statement.dialect.URI().DBType == schemas.POSTGRES {
+		if _, err := buf.WriteString(" RETURNING "); err != nil {
+			return nil, err
+		}
+		if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
+			return nil, err
 		}
 	}
 

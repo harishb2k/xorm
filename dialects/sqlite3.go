@@ -207,6 +207,12 @@ func (db *sqlite3) SetQuotePolicy(quotePolicy QuotePolicy) {
 	}
 }
 
+func (db *sqlite3) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
+}
+
 func (db *sqlite3) SQLType(c *schemas.Column) string {
 	switch t := c.SQLType.Name; t {
 	case schemas.Bool:

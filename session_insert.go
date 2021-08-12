@@ -91,7 +91,6 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 		colMultiPlaces []string
 		args           []interface{}
 		cols           []*schemas.Column
-		insertCnt      int
 	)
 
 	for i := 0; i < size; i++ {
