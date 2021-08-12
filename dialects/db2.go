@@ -67,11 +67,13 @@ func (db *db2) SQLType(c *schemas.Column) string {
 		return schemas.BigInt
 	case schemas.UnsignedInt:
 		return schemas.BigInt
+	case schemas.Int, schemas.Integer:
+		return schemas.Integer
 	case schemas.Bit, schemas.Bool, schemas.Boolean:
 		res = schemas.Boolean
 		return res
-	case schemas.Binary, schemas.VarBinary:
-		return schemas.Bytea
+	case schemas.Binary:
+		res = schemas.Binary
 	case schemas.DateTime:
 		res = schemas.TimeStamp
 	case schemas.TimeStampz:
@@ -82,8 +84,13 @@ func (db *db2) SQLType(c *schemas.Column) string {
 		res = schemas.Varchar
 	case schemas.Uuid:
 		return schemas.Uuid
+	case schemas.VarBinary, schemas.Bytea:
+		res = schemas.VarBinary
+		if c.Length == 0 {
+			return res + "(MAX)"
+		}
 	case schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob:
-		return schemas.Bytea
+		return schemas.Blob
 	default:
 		res = t
 	}
