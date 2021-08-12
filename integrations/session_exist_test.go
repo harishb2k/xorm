@@ -48,19 +48,19 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	has, err = testEngine.Where("name = ?", "test1").Exist(&RecordExist{})
+	has, err = testEngine.Where("`name` = ?", "test1").Exist(&RecordExist{})
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.Where("name = ?", "test2").Exist(&RecordExist{})
+	has, err = testEngine.Where("`name` = ?", "test2").Exist(&RecordExist{})
 	assert.NoError(t, err)
 	assert.False(t, has)
 
-	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test1").Exist()
+	has, err = testEngine.SQL("select * from "+testEngine.Quote(testEngine.TableName("record_exist", true))+" where `name` = ?", "test1").Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.SQL("select * from "+testEngine.TableName("record_exist", true)+" where name = ?", "test2").Exist()
+	has, err = testEngine.SQL("select * from "+testEngine.Quote(testEngine.TableName("record_exist", true))+" where `name` = ?", "test2").Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 
@@ -68,11 +68,11 @@ func TestExistStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
+	has, err = testEngine.Table("record_exist").Where("`name` = ?", "test1").Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = testEngine.Table("record_exist").Where("name = ?", "test2").Exist()
+	has, err = testEngine.Table("record_exist").Where("`name` = ?", "test2").Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 
@@ -124,43 +124,43 @@ func TestExistStructForJoin(t *testing.T) {
 	defer session.Close()
 
 	session.Table("number").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid").
-		Where("number.lid = ?", 1)
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`").
+		Where("`number`.`lid` = ?", 1)
 	has, err := session.Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	session.Table("number").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid").
-		Where("number.lid = ?", 2)
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`").
+		Where("`number`.`lid` = ?", 2)
 	has, err = session.Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	session.Table("number").
 		Select("order_list.id").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid").
-		Where("order_list.id = ?", 1)
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`").
+		Where("`order_list`.`id` = ?", 1)
 	has, err = session.Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
 
 	session.Table("number").
 		Select("player.id").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid").
-		Where("player.id = ?", 2)
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`").
+		Where("`player`.`id` = ?", 2)
 	has, err = session.Exist()
 	assert.NoError(t, err)
 	assert.False(t, has)
 
 	session.Table("number").
 		Select("player.id").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid")
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`")
 	has, err = session.Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)
@@ -174,15 +174,15 @@ func TestExistStructForJoin(t *testing.T) {
 
 	session.Table("number").
 		Select("player.id").
-		Join("INNER", "order_list", "order_list.id = number.lid").
-		Join("LEFT", "player", "player.id = order_list.eid")
+		Join("INNER", "order_list", "`order_list`.`id` = `number`.`lid`").
+		Join("LEFT", "player", "`player`.`id` = `order_list`.`eid`")
 	has, err = session.Exist()
 	assert.Error(t, err)
 	assert.False(t, has)
 
 	session.Table("number").
 		Select("player.id").
-		Join("LEFT", "player", "player.id = number.lid")
+		Join("LEFT", "player", "`player`.`id` = `number`.`lid`")
 	has, err = session.Exist()
 	assert.NoError(t, err)
 	assert.True(t, has)

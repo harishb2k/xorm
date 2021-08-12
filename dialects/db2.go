@@ -34,8 +34,28 @@ func (db *db2) Init(uri *URI) error {
 	return db.Base.Init(db, uri)
 }
 
-func (db *db2) Version(context.Context, core.Queryer) (*schemas.Version, error) {
-	return nil, fmt.Errorf("not implementation")
+func (db *db2) Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error) {
+	rows, err := queryer.QueryContext(ctx, "SELECT service_level, fixpack_num FROM TABLE(sysproc.env_get_inst_info()) as INSTANCEINFO")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		var serviceLevel, fixpackNum string
+		if err := rows.Scan(&serviceLevel, &fixpackNum); err != nil {
+			return nil, err
+		}
+
+		parts := strings.Split(serviceLevel, " ")
+		return &schemas.Version{
+			Number:  parts[1],
+			Level:   fixpackNum,
+			Edition: parts[0],
+		}, nil
+	}
+
+	return nil, rows.Err()
 }
 
 func (db *db2) Features() *DialectFeatures {
@@ -65,7 +85,7 @@ func (db *db2) SQLType(c *schemas.Column) string {
 		return res
 	case schemas.UnsignedBigInt:
 		return schemas.BigInt
-	case schemas.UnsignedInt:
+	case schemas.UnsignedInt, schemas.BigInt:
 		return schemas.BigInt
 	case schemas.Int, schemas.Integer:
 		return schemas.Integer

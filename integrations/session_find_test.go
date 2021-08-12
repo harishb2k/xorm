@@ -56,8 +56,8 @@ func TestJoinLimit(t *testing.T) {
 
 	var salaries []Salary
 	err = testEngine.Table("salary").
-		Join("INNER", "check_list", "check_list.id = salary.lid").
-		Join("LEFT", "empsetting", "empsetting.id = check_list.eid").
+		Join("INNER", "check_list", "`check_list`.`id` = `salary`.`lid`").
+		Join("LEFT", "empsetting", "`empsetting`.`id` = `check_list`.`eid`").
 		Limit(10, 0).
 		Find(&salaries)
 	assert.NoError(t, err)
@@ -69,10 +69,10 @@ func TestWhere(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	users := make([]Userinfo, 0)
-	err := testEngine.Where("id > ?", 2).Find(&users)
+	err := testEngine.Where("`id` > ?", 2).Find(&users)
 	assert.NoError(t, err)
 
-	err = testEngine.Where("id > ?", 2).And("id < ?", 10).Find(&users)
+	err = testEngine.Where("`id` > ?", 2).And("`id` < ?", 10).Find(&users)
 	assert.NoError(t, err)
 }
 
