@@ -385,6 +385,10 @@ steps:
     TEST_DB2_DBNAME: xorm_test
     TEST_DB2_USERNAME: sa
     TEST_DB2_PASSWORD: xorm_test
+    DB2HOME: /go/pkg/mod/github.com/ibmdb/clidriver
+    CGO_CFLAGS: -I$DB2HOME/include
+    CGO_LDFLAGS: -L$DB2HOME/lib
+    LD_LIBRARY_PATH: $DB2HOME/lib
   commands:
   - make test-db2
   - TEST_CACHE_ENABLE=true make test-db2
