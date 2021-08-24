@@ -876,12 +876,6 @@ func (db *postgres) SetQuotePolicy(quotePolicy QuotePolicy) {
 	}
 }
 
-func (db *postgres) Features() *DialectFeatures {
-	return &DialectFeatures{
-		AutoincrMode: IncrAutoincrMode,
-	}
-}
-
 func (db *postgres) SQLType(c *schemas.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
@@ -945,6 +939,12 @@ func (db *postgres) SQLType(c *schemas.Column) string {
 		res += "(" + strconv.Itoa(c.Length) + ")"
 	}
 	return res
+}
+
+func (db *postgres) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
 }
 
 func (db *postgres) ColumnTypeKind(t string) int {

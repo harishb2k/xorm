@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"xorm.io/xorm/core"
+	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
 
@@ -542,8 +543,7 @@ func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.V
 
 func (db *oracle) Features() *DialectFeatures {
 	return &DialectFeatures{
-		AutoincrMode:              SequenceAutoincrMode,
-		SupportReturnIDWhenInsert: false,
+		AutoincrMode: SequenceAutoincrMode,
 	}
 }
 
@@ -688,10 +688,6 @@ func (db *oracle) IsColumnExist(queryer core.Queryer, ctx context.Context, table
 	return db.HasRecords(queryer, ctx, query, args...)
 }
 
-func OracleSeqName(tableName string) string {
-	return "SEQ_" + strings.ToUpper(tableName)
-}
-
 func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
 	//s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
 	//	"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
@@ -755,7 +751,7 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		if pkName != "" && pkName == col.Name {
 			col.IsPrimaryKey = true
 
-			has, err := db.HasRecords(queryer, ctx, "SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = :1", OracleSeqName(tableName))
+			has, err := db.HasRecords(queryer, ctx, "SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = :1", utils.SeqName(tableName))
 			if err != nil {
 				return nil, nil, err
 			}
