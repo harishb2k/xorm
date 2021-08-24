@@ -100,11 +100,11 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 			if needSeq {
 				if len(args) > 0 {
 					if _, err := buf.WriteString(","); err != nil {
-						return "", nil, err
+						return nil, err
 					}
 				}
 				if _, err := buf.WriteString(utils.SeqName(tableName) + ".nextval"); err != nil {
-					return "", nil, err
+					return nil, err
 				}
 			}
 			if len(exprs) > 0 {
@@ -112,7 +112,7 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 					return nil, err
 				}
 				if err := exprs.WriteArgs(buf); err != nil {
-					return "", nil, err
+					return nil, err
 				}
 			}
 
@@ -144,11 +144,11 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 			if needSeq {
 				if hasInsertColumns {
 					if _, err := buf.WriteString(","); err != nil {
-						return "", nil, err
+						return nil, err
 					}
 				}
 				if _, err := buf.WriteString(utils.SeqName(tableName) + ".nextval"); err != nil {
-					return "", nil, err
+					return nil, err
 				}
 			}
 

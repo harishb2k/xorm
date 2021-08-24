@@ -421,7 +421,7 @@ func (db *mssql) AutoIncrStr() string {
 	return "IDENTITY"
 }
 
-func (db *mssql) DropTableSQL(tableName, autoincrCol string) (string, bool) {
+func (db *mssql) DropTableSQL(tableName string) (string, bool) {
 	return fmt.Sprintf("IF EXISTS (SELECT * FROM sysobjects WHERE id = "+
 		"object_id(N'%s') and OBJECTPROPERTY(id, N'IsUserTable') = 1) "+
 		"DROP TABLE \"%s\"", tableName, tableName), true

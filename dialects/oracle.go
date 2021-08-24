@@ -615,7 +615,7 @@ func (db *oracle) IsReserved(name string) bool {
 	return ok
 }
 
-func (db *oracle) DropTableSQL(tableName, autoincrCol string) (string, bool) {
+func (db *oracle) DropTableSQL(tableName string) (string, bool) {
 	return fmt.Sprintf("DROP TABLE %s", db.quoter.Quote(tableName)), false
 }
 

@@ -148,14 +148,11 @@ func (session *Session) DropTable(beanOrTableName interface{}) error {
 }
 
 func (session *Session) dropTable(beanOrTableName interface{}) error {
-	var tableName, autoIncrementCol string
+	var tableName string
 	switch beanOrTableName.(type) {
 	case *schemas.Table:
 		table := beanOrTableName.(*schemas.Table)
 		tableName = table.Name
-		if table.AutoIncrColumn() != nil {
-			autoIncrementCol = table.AutoIncrColumn().Name
-		}
 	case string:
 		tableName = beanOrTableName.(string)
 	default:
@@ -169,12 +166,9 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 		} else {
 			tableName = table.Name
 		}
-		if table.AutoIncrColumn() != nil {
-			autoIncrementCol = table.AutoIncrColumn().Name
-		}
 	}
 
-	sqlStr, checkIfExist := session.engine.dialect.DropTableSQL(tableName, autoIncrementCol)
+	sqlStr, checkIfExist := session.engine.dialect.DropTableSQL(tableName)
 	if !checkIfExist {
 		exist, err := session.engine.dialect.IsTableExist(session.getQueryer(), session.ctx, tableName)
 		if err != nil {
@@ -189,10 +183,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	if _, err := session.exec(sqlStr); err != nil {
 		return err
 	}
-<<<<<<< HEAD
 
-=======
->>>>>>> 1805a60 (Fix test)
 	if session.engine.dialect.Features().AutoincrMode == dialects.IncrAutoincrMode {
 		return nil
 	}

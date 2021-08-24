@@ -171,7 +171,7 @@ func (db *Base) DropSequenceSQL(seqName string) (string, error) {
 }
 
 // DropTableSQL returns drop table SQL
-func (db *Base) DropTableSQL(tableName, autoincrCol string) (string, bool) {
+func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	quote := db.dialect.Quoter().Quote
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName)), true
 }
