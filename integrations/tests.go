@@ -162,7 +162,7 @@ func createEngine(dbType, connStr string) error {
 	if err != nil {
 		return err
 	}
-	var tableNames []interface{}
+	var tableNames = make([]interface{}, 0, len(tables))
 	for _, table := range tables {
 		tableNames = append(tableNames, table.Name)
 	}
