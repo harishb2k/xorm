@@ -285,6 +285,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 		return 0, err
 	}
 	var sqlStr = session.engine.dialect.Quoter().Replace(buf.String())
+	args = buf.Args()
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
 		if session.isAutoCommit {
