@@ -32,6 +32,12 @@ TEST_MYSQL_DBNAME ?= xorm_test
 TEST_MYSQL_USERNAME ?= root
 TEST_MYSQL_PASSWORD ?=
 
+TEST_ORACLE_HOST ?= oracle:1521
+TEST_ORACLE_SCHEMA ?=
+TEST_ORACLE_DBNAME ?= xe
+TEST_ORACLE_USERNAME ?= system
+TEST_ORACLE_PASSWORD ?= oracle
+
 TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_SCHEMA ?=
 TEST_PGSQL_DBNAME ?= xorm_test
@@ -267,6 +273,19 @@ test-dameng\#%: go-check
 	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=dm -cache=$(TEST_CACHE_ENABLE) -quote=$(TEST_QUOTE_POLICY) \
 	-conn_str="dm://$(TEST_DAMENG_USERNAME):$(TEST_DAMENG_PASSWORD)@$(TEST_DAMENG_HOST)" \
 	-coverprofile=dameng.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic -timeout=20m
+
+.PHONY: test-gora
+test-gora: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -db=oracle -schema='$(TEST_ORACLE_SCHEMA)' -cache=$(TEST_CACHE_ENABLE) \
+	-conn_str="oracle://$(TEST_ORACLE_USERNAME):$(TEST_ORACLE_PASSWORD)@$(TEST_ORACLE_HOST)/$(TEST_ORACLE_DBNAME)" \
+	-coverprofile=oracle.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+.PHONY: test-gora\#%
+test-gora\#%: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=oracle -schema='$(TEST_ORACLE_SCHEMA)' -cache=$(TEST_CACHE_ENABLE) \
+	-conn_str="oracle://$(TEST_ORACLE_USERNAME):$(TEST_ORACLE_PASSWORD)@$(TEST_ORACLE_HOST)/$(TEST_ORACLE_DBNAME)" \
+	-coverprofile=oracle.$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
 
 .PHONY: vet
 vet:

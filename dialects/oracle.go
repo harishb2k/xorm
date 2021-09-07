@@ -932,3 +932,7 @@ func (o *oci8Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	}
 	return db, nil
 }
+
+type goraDriver struct {
+	godrorDriver
+}
