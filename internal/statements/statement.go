@@ -836,10 +836,6 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			continue
 		}
 
-		if statement.dialect.URI().DBType == schemas.MSSQL && (col.SQLType.Name == schemas.Text ||
-			col.SQLType.IsBlob() || col.SQLType.Name == schemas.TimeStampz) {
-			continue
-		}
 		if col.IsJSON {
 			continue
 		}
@@ -872,6 +868,15 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 		fieldValue := *fieldValuePtr
 		if fieldValue.Interface() == nil {
 			continue
+		}
+
+		if statement.dialect.URI().DBType == schemas.MSSQL && (col.SQLType.Name == schemas.Text ||
+			col.SQLType.IsBlob() || col.SQLType.Name == schemas.TimeStampz) {
+			if utils.IsValueZero(fieldValue) {
+				continue
+			}
+
+			return nil, fmt.Errorf("column %s is a TEXT type which cannot be as compare condition", col.Name)
 		}
 
 		requiredField := useAllCols
