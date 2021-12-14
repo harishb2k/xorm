@@ -5,6 +5,7 @@
 package statements
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -37,6 +38,7 @@ func TestMain(m *testing.M) {
 		panic("tags parser is nil")
 	}
 	m.Run()
+	os.Exit(0)
 }
 
 var colStrTests = []struct {
@@ -75,6 +77,23 @@ func TestColumnsStringGeneration(t *testing.T) {
 			columns[testCase.onlyToDBColumnNdx].MapType = schemas.TWOSIDES
 		}
 	}
+}
+
+func TestConvertSQLOrArgs(t *testing.T) {
+	statement, err := createTestStatement()
+	assert.NoError(t, err)
+
+	// example orm struct
+	// type Table struct {
+	// 	ID  int
+	// 	del *time.Time `xorm:"deleted"`
+	// }
+	args := []interface{}{
+		"INSERT `table` (`id`, `del`) VALUES (?, ?)", 1, (*time.Time)(nil),
+	}
+	// before fix, here will panic
+	_, _, err = statement.convertSQLOrArgs(args...)
+	assert.NoError(t, err)
 }
 
 func BenchmarkGetFlagForColumnWithICKey_ContainsKey(b *testing.B) {

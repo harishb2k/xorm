@@ -6,7 +6,6 @@ package dialects
 
 import (
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -172,16 +171,7 @@ var (
 
 type mysql struct {
 	Base
-	net               string
-	addr              string
-	params            map[string]string
-	loc               *time.Location
-	timeout           time.Duration
-	tls               *tls.Config
-	allowAllFiles     bool
-	allowOldPasswords bool
-	clientFoundRows   bool
-	rowFormat         string
+	rowFormat string
 }
 
 func (db *mysql) Init(uri *URI) error {
@@ -242,6 +232,12 @@ func (db *mysql) Version(ctx context.Context, queryer core.Queryer) (*schemas.Ve
 		Number:  fields[0],
 		Edition: edition,
 	}, nil
+}
+
+func (db *mysql) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
 }
 
 func (db *mysql) SetParams(params map[string]string) {
@@ -491,15 +487,15 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 		if _, ok := schemas.SqlTypes[colType]; ok {
 			col.SQLType = schemas.SQLType{Name: colType, DefaultLength: len1, DefaultLength2: len2}
 		} else {
-			return nil, nil, fmt.Errorf("Unknown colType %v", colType)
+			return nil, nil, fmt.Errorf("unknown colType %v", colType)
 		}
 
 		if colKey == "PRI" {
 			col.IsPrimaryKey = true
 		}
-		if colKey == "UNI" {
-			// col.is
-		}
+		// if colKey == "UNI" {
+		// col.is
+		// }
 
 		if extra == "auto_increment" {
 			col.IsAutoIncrement = true
@@ -625,43 +621,44 @@ func (db *mysql) GetIndexes(queryer core.Queryer, ctx context.Context, tableName
 	return indexes, nil
 }
 
-func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
-	var sql = "CREATE TABLE IF NOT EXISTS "
+func (db *mysql) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {
 	if tableName == "" {
 		tableName = table.Name
 	}
 
-	quoter := db.Quoter()
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("CREATE TABLE IF NOT EXISTS ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
 
-	sql += quoter.Quote(tableName)
-	sql += " ("
+	for i, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
 
-	if len(table.ColumnsSeq()) > 0 {
-		pkList := table.PrimaryKeys
-
-		for _, colName := range table.ColumnsSeq() {
-			col := table.GetColumn(colName)
-			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
-			sql += s
-			sql = strings.TrimSpace(sql)
-			if len(col.Comment) > 0 {
-				sql += " COMMENT '" + col.Comment + "'"
-			}
-			sql += ", "
+		if len(col.Comment) > 0 {
+			b.WriteString(" COMMENT '")
+			b.WriteString(col.Comment)
+			b.WriteString("'")
 		}
 
-		if len(pkList) > 1 {
-			sql += "PRIMARY KEY ( "
-			sql += quoter.Join(pkList, ",")
-			sql += " ), "
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
 		}
-
-		sql = sql[:len(sql)-2]
 	}
-	sql += ")"
+
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
+	}
+
+	b.WriteString(")")
 
 	if table.StoreEngine != "" {
-		sql += " ENGINE=" + table.StoreEngine
+		b.WriteString(" ENGINE=")
+		b.WriteString(table.StoreEngine)
 	}
 
 	var charset = table.Charset
@@ -669,13 +666,22 @@ func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]strin
 		charset = db.URI().Charset
 	}
 	if len(charset) != 0 {
-		sql += " DEFAULT CHARSET " + charset
+		b.WriteString(" DEFAULT CHARSET ")
+		b.WriteString(charset)
 	}
 
 	if db.rowFormat != "" {
-		sql += " ROW_FORMAT=" + db.rowFormat
+		b.WriteString(" ROW_FORMAT=")
+		b.WriteString(db.rowFormat)
 	}
-	return []string{sql}, true
+
+	if table.Comment != "" {
+		b.WriteString(" COMMENT='")
+		b.WriteString(table.Comment)
+		b.WriteString("'")
+	}
+
+	return b.String(), true, nil
 }
 
 func (db *mysql) Filters() []Filter {
@@ -769,7 +775,7 @@ func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 		// Parse protocol part of URI
 		p := strings.SplitN(pd[0], ":", 2)
 		if len(p) != 2 {
-			return nil, errors.New("Wrong protocol part of URI")
+			return nil, errors.New("wrong protocol part of URI")
 		}
 		uri.Proto = p[0]
 		options := strings.Split(p[1], ",")
@@ -792,7 +798,7 @@ func (p *mymysqlDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 				}
 				uri.Timeout = to
 			default:
-				return nil, errors.New("Unknown option: " + k)
+				return nil, errors.New("unknown option: " + k)
 			}
 		}
 		// Remove protocol part

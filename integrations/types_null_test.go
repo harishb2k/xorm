@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type NullType struct {
+type NullStruct struct {
 	Id           int `xorm:"pk autoincr"`
 	Name         sql.NullString
 	Age          sql.NullInt64
@@ -65,26 +65,26 @@ func (m CustomStruct) Value() (driver.Value, error) {
 
 func TestCreateNullStructTable(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	err := testEngine.CreateTables(new(NullType))
+	err := testEngine.CreateTables(new(NullStruct))
 	assert.NoError(t, err)
 }
 
 func TestDropNullStructTable(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	err := testEngine.DropTables(new(NullType))
+	err := testEngine.DropTables(new(NullStruct))
 	assert.NoError(t, err)
 }
 
 func TestNullStructInsert(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
-	item1 := new(NullType)
+	item1 := new(NullStruct)
 	_, err := testEngine.Insert(item1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, item1.Id)
 
-	item := NullType{
+	item := NullStruct{
 		Name:   sql.NullString{String: "haolei", Valid: true},
 		Age:    sql.NullInt64{Int64: 34, Valid: true},
 		Height: sql.NullFloat64{Float64: 1.72, Valid: true},
@@ -95,9 +95,9 @@ func TestNullStructInsert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, item.Id)
 
-	items := []NullType{}
+	items := []NullStruct{}
 	for i := 0; i < 5; i++ {
-		item := NullType{
+		item := NullStruct{
 			Name:         sql.NullString{String: "haolei_" + fmt.Sprint(i+1), Valid: true},
 			Age:          sql.NullInt64{Int64: 30 + int64(i), Valid: true},
 			Height:       sql.NullFloat64{Float64: 1.5 + 1.1*float64(i), Valid: true},
@@ -111,7 +111,7 @@ func TestNullStructInsert(t *testing.T) {
 	_, err = testEngine.Insert(&items)
 	assert.NoError(t, err)
 
-	items = make([]NullType, 0, 7)
+	items = make([]NullStruct, 0, 7)
 	err = testEngine.Find(&items)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 7, len(items))
@@ -119,9 +119,9 @@ func TestNullStructInsert(t *testing.T) {
 
 func TestNullStructUpdate(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
-	_, err := testEngine.Insert([]NullType{
+	_, err := testEngine.Insert([]NullStruct{
 		{
 			Name: sql.NullString{
 				String: "name1",
@@ -150,7 +150,7 @@ func TestNullStructUpdate(t *testing.T) {
 	assert.NoError(t, err)
 
 	if true { // 测试可插入NULL
-		item := new(NullType)
+		item := new(NullStruct)
 		item.Age = sql.NullInt64{Int64: 23, Valid: true}
 		item.Height = sql.NullFloat64{Float64: 0, Valid: false} // update to NULL
 
@@ -160,7 +160,7 @@ func TestNullStructUpdate(t *testing.T) {
 	}
 
 	if true { // 测试In update
-		item := new(NullType)
+		item := new(NullStruct)
 		item.Age = sql.NullInt64{Int64: 23, Valid: true}
 		affected, err := testEngine.In("id", 3, 4).Cols("age", "height", "is_man").Update(item)
 		assert.NoError(t, err)
@@ -168,17 +168,17 @@ func TestNullStructUpdate(t *testing.T) {
 	}
 
 	if true { // 测试where
-		item := new(NullType)
+		item := new(NullStruct)
 		item.Name = sql.NullString{String: "nullname", Valid: true}
 		item.IsMan = sql.NullBool{Bool: true, Valid: true}
 		item.Age = sql.NullInt64{Int64: 34, Valid: true}
 
-		_, err := testEngine.Where("age > ?", 34).Update(item)
+		_, err := testEngine.Where("`age` > ?", 34).Update(item)
 		assert.NoError(t, err)
 	}
 
 	if true { // 修改全部时，插入空值
-		item := &NullType{
+		item := &NullStruct{
 			Name:   sql.NullString{String: "winxxp", Valid: true},
 			Age:    sql.NullInt64{Int64: 30, Valid: true},
 			Height: sql.NullFloat64{Float64: 1.72, Valid: true},
@@ -192,9 +192,9 @@ func TestNullStructUpdate(t *testing.T) {
 
 func TestNullStructFind(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
-	_, err := testEngine.Insert([]NullType{
+	_, err := testEngine.Insert([]NullStruct{
 		{
 			Name: sql.NullString{
 				String: "name1",
@@ -223,7 +223,7 @@ func TestNullStructFind(t *testing.T) {
 	assert.NoError(t, err)
 
 	if true {
-		item := new(NullType)
+		item := new(NullStruct)
 		has, err := testEngine.ID(1).Get(item)
 		assert.NoError(t, err)
 		assert.True(t, has)
@@ -235,7 +235,7 @@ func TestNullStructFind(t *testing.T) {
 	}
 
 	if true {
-		item := new(NullType)
+		item := new(NullStruct)
 		item.Id = 2
 		has, err := testEngine.Get(item)
 		assert.NoError(t, err)
@@ -243,13 +243,13 @@ func TestNullStructFind(t *testing.T) {
 	}
 
 	if true {
-		item := make([]NullType, 0)
+		item := make([]NullStruct, 0)
 		err := testEngine.ID(2).Find(&item)
 		assert.NoError(t, err)
 	}
 
 	if true {
-		item := make([]NullType, 0)
+		item := make([]NullStruct, 0)
 		err := testEngine.Asc("age").Find(&item)
 		assert.NoError(t, err)
 	}
@@ -257,12 +257,12 @@ func TestNullStructFind(t *testing.T) {
 
 func TestNullStructIterate(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
 	if true {
-		err := testEngine.Where("age IS NOT NULL").OrderBy("age").Iterate(new(NullType),
+		err := testEngine.Where("`age` IS NOT NULL").OrderBy("age").Iterate(new(NullStruct),
 			func(i int, bean interface{}) error {
-				nultype := bean.(*NullType)
+				nultype := bean.(*NullStruct)
 				fmt.Println(i, nultype)
 				return nil
 			})
@@ -272,21 +272,21 @@ func TestNullStructIterate(t *testing.T) {
 
 func TestNullStructCount(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
 	if true {
-		item := new(NullType)
-		_, err := testEngine.Where("age IS NOT NULL").Count(item)
+		item := new(NullStruct)
+		_, err := testEngine.Where("`age` IS NOT NULL").Count(item)
 		assert.NoError(t, err)
 	}
 }
 
 func TestNullStructRows(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
-	item := new(NullType)
-	rows, err := testEngine.Where("id > ?", 1).Rows(item)
+	item := new(NullStruct)
+	rows, err := testEngine.Where("`id` > ?", 1).Rows(item)
 	assert.NoError(t, err)
 	defer rows.Close()
 
@@ -298,13 +298,13 @@ func TestNullStructRows(t *testing.T) {
 
 func TestNullStructDelete(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assertSync(t, new(NullType))
+	assertSync(t, new(NullStruct))
 
-	item := new(NullType)
+	item := new(NullStruct)
 
 	_, err := testEngine.ID(1).Delete(item)
 	assert.NoError(t, err)
 
-	_, err = testEngine.Where("id > ?", 1).Delete(item)
+	_, err = testEngine.Where("`id` > ?", 1).Delete(item)
 	assert.NoError(t, err)
 }

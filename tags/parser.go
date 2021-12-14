@@ -7,6 +7,7 @@ package tags
 import (
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -14,8 +15,8 @@ import (
 	"unicode"
 
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/dialects"
-	"xorm.io/xorm/internal/convert"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 )
@@ -127,6 +128,25 @@ func addIndex(indexName string, table *schemas.Table, col *schemas.Column, index
 // ErrIgnoreField represents an error to ignore field
 var ErrIgnoreField = errors.New("field will be ignored")
 
+func (parser *Parser) getSQLTypeByType(t reflect.Type) (schemas.SQLType, error) {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Struct {
+		v, ok := parser.tableCache.Load(t)
+		if ok {
+			pkCols := v.(*schemas.Table).PKColumns()
+			if len(pkCols) == 1 {
+				return pkCols[0].SQLType, nil
+			}
+			if len(pkCols) > 1 {
+				return schemas.SQLType{}, fmt.Errorf("unsupported mulitiple primary key on cascade")
+			}
+		}
+	}
+	return schemas.Type2SQLType(t), nil
+}
+
 func (parser *Parser) parseFieldWithNoTag(fieldIndex int, field reflect.StructField, fieldValue reflect.Value) (*schemas.Column, error) {
 	var sqlType schemas.SQLType
 	if fieldValue.CanAddr() {
@@ -137,7 +157,11 @@ func (parser *Parser) parseFieldWithNoTag(fieldIndex int, field reflect.StructFi
 	if _, ok := fieldValue.Interface().(convert.Conversion); ok {
 		sqlType = schemas.SQLType{Name: schemas.Text}
 	} else {
-		sqlType = schemas.Type2SQLType(field.Type)
+		var err error
+		sqlType, err = parser.getSQLTypeByType(field.Type)
+		if err != nil {
+			return nil, err
+		}
 	}
 	col := schemas.NewColumn(parser.columnMapper.Obj2Table(field.Name),
 		field.Name, sqlType, sqlType.DefaultLength,
@@ -215,7 +239,11 @@ func (parser *Parser) parseFieldWithTags(table *schemas.Table, fieldIndex int, f
 	}
 
 	if col.SQLType.Name == "" {
-		col.SQLType = schemas.Type2SQLType(field.Type)
+		var err error
+		col.SQLType, err = parser.getSQLTypeByType(field.Type)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if ctx.isUnsigned && col.SQLType.IsNumeric() && !strings.HasPrefix(col.SQLType.Name, "UNSIGNED") {
 		col.SQLType.Name = "UNSIGNED " + col.SQLType.Name
@@ -288,6 +316,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 	table := schemas.NewEmptyTable()
 	table.Type = t
 	table.Name = names.GetTableName(parser.tableMapper, v)
+	table.Comment = names.GetTableComment(v)
 
 	for i := 0; i < t.NumField(); i++ {
 		col, err := parser.parseField(table, i, t.Field(i), v.Field(i))

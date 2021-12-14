@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/internal/convert"
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/internal/json"
 	"xorm.io/xorm/schemas"
 
@@ -28,7 +28,7 @@ func TestArrayField(t *testing.T) {
 		Name [20]byte `xorm:"char(80)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(ArrayStruct)))
+	assert.NoError(t, testEngine.Sync(new(ArrayStruct)))
 
 	var as = ArrayStruct{
 		Name: [20]byte{
@@ -90,7 +90,7 @@ func TestGetBytes(t *testing.T) {
 		Data []byte `xorm:"VARBINARY(250)"`
 	}
 
-	err := testEngine.Sync2(new(Varbinary))
+	err := testEngine.Sync(new(Varbinary))
 	assert.NoError(t, err)
 
 	cnt, err := testEngine.Insert(&Varbinary{
@@ -193,7 +193,7 @@ func TestConversion(t *testing.T) {
 
 	c := new(ConvStruct)
 	assert.NoError(t, testEngine.DropTables(c))
-	assert.NoError(t, testEngine.Sync2(c))
+	assert.NoError(t, testEngine.Sync(c))
 
 	var s ConvString = "sssss"
 	c.Conv = "tttt"
@@ -428,7 +428,7 @@ func TestUnsignedUint64(t *testing.T) {
 		assert.EqualValues(t, "INTEGER", tables[0].Columns()[0].SQLType.Name)
 	case schemas.MYSQL:
 		assert.EqualValues(t, "UNSIGNED BIGINT", tables[0].Columns()[0].SQLType.Name)
-	case schemas.POSTGRES:
+	case schemas.POSTGRES, schemas.DAMENG:
 		assert.EqualValues(t, "BIGINT", tables[0].Columns()[0].SQLType.Name)
 	case schemas.MSSQL:
 		assert.EqualValues(t, "BIGINT", tables[0].Columns()[0].SQLType.Name)
@@ -472,9 +472,7 @@ func TestUnsignedUint32(t *testing.T) {
 		assert.EqualValues(t, "INTEGER", tables[0].Columns()[0].SQLType.Name)
 	case schemas.MYSQL:
 		assert.EqualValues(t, "UNSIGNED INT", tables[0].Columns()[0].SQLType.Name)
-	case schemas.POSTGRES:
-		assert.EqualValues(t, "BIGINT", tables[0].Columns()[0].SQLType.Name)
-	case schemas.MSSQL:
+	case schemas.POSTGRES, schemas.MSSQL, schemas.DAMENG:
 		assert.EqualValues(t, "BIGINT", tables[0].Columns()[0].SQLType.Name)
 	default:
 		assert.False(t, true, "Unsigned is not implemented")
@@ -507,7 +505,7 @@ func TestUnsignedTinyInt(t *testing.T) {
 	assert.EqualValues(t, 1, len(tables[0].Columns()))
 
 	switch testEngine.Dialect().URI().DBType {
-	case schemas.SQLITE:
+	case schemas.SQLITE, schemas.DAMENG:
 		assert.EqualValues(t, "INTEGER", tables[0].Columns()[0].SQLType.Name)
 	case schemas.MYSQL:
 		assert.EqualValues(t, "UNSIGNED TINYINT", tables[0].Columns()[0].SQLType.Name)
@@ -516,7 +514,7 @@ func TestUnsignedTinyInt(t *testing.T) {
 	case schemas.MSSQL:
 		assert.EqualValues(t, "INT", tables[0].Columns()[0].SQLType.Name)
 	default:
-		assert.False(t, true, "Unsigned is not implemented")
+		assert.False(t, true, fmt.Sprintf("Unsigned is not implemented, returned %s", tables[0].Columns()[0].SQLType.Name))
 	}
 
 	cnt, err := testEngine.Insert(&MyUnsignedTinyIntStruct{

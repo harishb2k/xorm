@@ -51,7 +51,7 @@ func createEngine(dbType, connStr string) error {
 		if !*cluster {
 			switch schemas.DBType(strings.ToLower(dbType)) {
 			case schemas.MSSQL:
-				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "master", -1))
+				db, err := sql.Open(dbType, strings.ReplaceAll(connStr, "xorm_test", "master"))
 				if err != nil {
 					return err
 				}
@@ -61,7 +61,7 @@ func createEngine(dbType, connStr string) error {
 				db.Close()
 				*ignoreSelectUpdate = true
 			case schemas.POSTGRES:
-				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "postgres", -1))
+				db, err := sql.Open(dbType, strings.ReplaceAll(connStr, "xorm_test", "postgres"))
 				if err != nil {
 					return err
 				}
@@ -90,7 +90,7 @@ func createEngine(dbType, connStr string) error {
 				db.Close()
 				*ignoreSelectUpdate = true
 			case schemas.MYSQL:
-				db, err := sql.Open(dbType, strings.Replace(connStr, "xorm_test", "mysql", -1))
+				db, err := sql.Open(dbType, strings.ReplaceAll(connStr, "xorm_test", "mysql"))
 				if err != nil {
 					return err
 				}

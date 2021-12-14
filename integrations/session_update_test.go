@@ -27,7 +27,7 @@ func TestUpdateMap(t *testing.T) {
 		Age  int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UpdateTable)))
+	assert.NoError(t, testEngine.Sync(new(UpdateTable)))
 	var tb = UpdateTable{
 		Name: "test",
 		Age:  35,
@@ -35,7 +35,7 @@ func TestUpdateMap(t *testing.T) {
 	_, err := testEngine.Insert(&tb)
 	assert.NoError(t, err)
 
-	cnt, err := testEngine.Table("update_table").Where("id = ?", tb.Id).Update(map[string]interface{}{
+	cnt, err := testEngine.Table("update_table").Where("`id` = ?", tb.Id).Update(map[string]interface{}{
 		"name": "test2",
 		"age":  36,
 	})
@@ -78,7 +78,7 @@ func TestUpdateLimit(t *testing.T) {
 		Age  int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UpdateTable2)))
+	assert.NoError(t, testEngine.Sync(new(UpdateTable2)))
 	var tb = UpdateTable2{
 		Name: "test1",
 		Age:  35,
@@ -93,7 +93,12 @@ func TestUpdateLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
-	cnt, err = testEngine.OrderBy("name desc").Limit(1).Update(&UpdateTable2{
+	if testEngine.Dialect().URI().DBType == schemas.DAMENG {
+		t.SkipNow()
+		return
+	}
+
+	cnt, err = testEngine.OrderBy("`name` desc").Limit(1).Update(&UpdateTable2{
 		Age: 30,
 	})
 	assert.NoError(t, err)
@@ -166,7 +171,7 @@ func TestForUpdate(t *testing.T) {
 	// use lock
 	fList := make([]ForUpdate, 0)
 	session1.ForUpdate()
-	session1.Where("id = ?", 1)
+	session1.Where("`id` = ?", 1)
 	err = session1.Find(&fList)
 	switch {
 	case err != nil:
@@ -187,7 +192,7 @@ func TestForUpdate(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		f2 := new(ForUpdate)
-		session2.Where("id = ?", 1).ForUpdate()
+		session2.Where("`id` = ?", 1).ForUpdate()
 		has, err := session2.Get(f2) // wait release lock
 		switch {
 		case err != nil:
@@ -207,7 +212,7 @@ func TestForUpdate(t *testing.T) {
 	wg2.Add(1)
 	go func() {
 		f3 := new(ForUpdate)
-		session3.Where("id = ?", 1)
+		session3.Where("`id` = ?", 1)
 		has, err := session3.Get(f3) // wait release lock
 		switch {
 		case err != nil:
@@ -225,15 +230,13 @@ func TestForUpdate(t *testing.T) {
 
 	f := new(ForUpdate)
 	f.Name = "updated by session1"
-	session1.Where("id = ?", 1)
-	session1.Update(f)
+	session1.Where("`id` = ?", 1)
+	_, err = session1.Update(f)
+	assert.NoError(t, err)
 
 	// release lock
 	err = session1.Commit()
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert.NoError(t, err)
 
 	wg.Wait()
 }
@@ -248,7 +251,7 @@ func TestWithIn(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 	assert.NoError(t, testEngine.Sync(new(temp3)))
 
-	testEngine.Insert(&[]temp3{
+	_, err := testEngine.Insert(&[]temp3{
 		{
 			Name: "user1",
 		},
@@ -259,6 +262,7 @@ func TestWithIn(t *testing.T) {
 			Name: "user1",
 		},
 	})
+	assert.NoError(t, err)
 
 	cnt, err := testEngine.In("Id", 1, 2, 3, 4).Update(&temp3{Name: "aa"}, &temp3{Name: "user1"})
 	assert.NoError(t, err)
@@ -300,7 +304,7 @@ func TestUpdateMap2(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 	assertSync(t, new(UpdateMustCols))
 
-	_, err := testEngine.Table("update_must_cols").Where("id =?", 1).Update(map[string]interface{}{
+	_, err := testEngine.Table("update_must_cols").Where("`id` =?", 1).Update(map[string]interface{}{
 		"bool": true,
 	})
 	assert.NoError(t, err)
@@ -313,6 +317,7 @@ func TestUpdate1(t *testing.T) {
 	_, err := testEngine.Insert(&Userinfo{
 		Username: "user1",
 	})
+	assert.NoError(t, err)
 
 	var ori Userinfo
 	has, err := testEngine.Get(&ori)
@@ -345,11 +350,11 @@ func TestUpdate1(t *testing.T) {
 		userID := user.Uid
 
 		has, err := testEngine.ID(userID).
-			And("username = ?", user.Username).
-			And("height = ?", user.Height).
-			And("departname = ?", "").
-			And("detail_id = ?", 0).
-			And("is_man = ?", 0).
+			And("`username` = ?", user.Username).
+			And("`height` = ?", user.Height).
+			And("`departname` = ?", "").
+			And("`detail_id` = ?", 0).
+			And("`is_man` = ?", false).
 			Get(&Userinfo{})
 		assert.NoError(t, err)
 		assert.True(t, has, "cannot insert properly")
@@ -362,12 +367,12 @@ func TestUpdate1(t *testing.T) {
 		assert.EqualValues(t, 1, cnt, "update not returned 1")
 
 		has, err = testEngine.ID(userID).
-			And("username = ?", updatedUser.Username).
-			And("height IS NULL").
-			And("departname IS NULL").
-			And("is_man IS NULL").
-			And("created IS NULL").
-			And("detail_id = ?", 0).
+			And("`username` = ?", updatedUser.Username).
+			And("`height` IS NULL").
+			And("`departname` IS NULL").
+			And("`is_man` IS NULL").
+			And("`created` IS NULL").
+			And("`detail_id` = ?", 0).
 			Get(&Userinfo{})
 		assert.NoError(t, err)
 		assert.True(t, has, "cannot update with null properly")
@@ -377,7 +382,7 @@ func TestUpdate1(t *testing.T) {
 		assert.EqualValues(t, 1, cnt, "delete not returned 1")
 	}
 
-	err = testEngine.StoreEngine("Innodb").Sync2(&Article{})
+	err = testEngine.StoreEngine("Innodb").Sync(&Article{})
 	assert.NoError(t, err)
 
 	defer func() {
@@ -508,7 +513,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	di := new(UpdatedUpdate)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync(di)
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&UpdatedUpdate{})
@@ -524,7 +529,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.EqualValues(t, ci.Updated.Unix(), di.Updated.Unix())
 
 	di2 := new(UpdatedUpdate2)
-	err = testEngine.Sync2(di2)
+	err = testEngine.Sync(di2)
 	assert.NoError(t, err)
 
 	now := time.Now()
@@ -551,7 +556,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.True(t, ci2.Updated >= di21.Updated)
 
 	di3 := new(UpdatedUpdate3)
-	err = testEngine.Sync2(di3)
+	err = testEngine.Sync(di3)
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&UpdatedUpdate3{})
@@ -567,7 +572,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.EqualValues(t, ci3.Updated, di3.Updated)
 
 	di4 := new(UpdatedUpdate4)
-	err = testEngine.Sync2(di4)
+	err = testEngine.Sync(di4)
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&UpdatedUpdate4{})
@@ -583,7 +588,7 @@ func TestUpdateUpdated(t *testing.T) {
 	assert.EqualValues(t, ci4.Updated, di4.Updated)
 
 	di5 := new(UpdatedUpdate5)
-	err = testEngine.Sync2(di5)
+	err = testEngine.Sync(di5)
 	assert.NoError(t, err)
 
 	_, err = testEngine.Insert(&UpdatedUpdate5{})
@@ -825,7 +830,7 @@ func TestNewUpdate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, af)
 
-	af, err = testEngine.Table(new(TbUserInfo)).Where("phone=?", 13126564922).Update(&changeUsr)
+	af, err = testEngine.Table(new(TbUserInfo)).Where("`phone`=?", "13126564922").Update(&changeUsr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, af)
 }
@@ -920,6 +925,7 @@ func TestDeletedUpdate(t *testing.T) {
 
 	var s1 DeletedUpdatedStruct
 	has, err := testEngine.ID(s.Id).Get(&s1)
+	assert.NoError(t, err)
 	assert.EqualValues(t, true, has)
 
 	cnt, err = testEngine.ID(s.Id).Delete(&DeletedUpdatedStruct{})
@@ -936,6 +942,7 @@ func TestDeletedUpdate(t *testing.T) {
 
 	var s2 DeletedUpdatedStruct
 	has, err = testEngine.ID(s.Id).Get(&s2)
+	assert.NoError(t, err)
 	assert.EqualValues(t, true, has)
 }
 
@@ -1166,7 +1173,7 @@ func TestUpdateExprs(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = testEngine.SetExpr("num_issues", "num_issues+1").AllCols().Update(&UpdateExprs{
+	_, err = testEngine.SetExpr("num_issues", "`num_issues`+1").AllCols().Update(&UpdateExprs{
 		NumIssues: 3,
 		Name:      "lunny xiao",
 	})
@@ -1197,7 +1204,7 @@ func TestUpdateAlias(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = testEngine.Alias("ua").Where("ua.id = ?", 1).Update(&UpdateAlias{
+	_, err = testEngine.Alias("ua").Where("ua.`id` = ?", 1).Update(&UpdateAlias{
 		NumIssues: 2,
 		Name:      "lunny xiao",
 	})
@@ -1237,7 +1244,7 @@ func TestUpdateExprs2(t *testing.T) {
 	assert.EqualValues(t, 1, inserted)
 
 	updated, err := testEngine.
-		Where("repo_id = ? AND is_tag = ?", 1, false).
+		Where("`repo_id` = ? AND `is_tag` = ?", 1, false).
 		SetExpr("is_draft", true).
 		SetExpr("num_commits", 0).
 		SetExpr("sha1", "").
@@ -1257,6 +1264,11 @@ func TestUpdateExprs2(t *testing.T) {
 }
 
 func TestUpdateMap3(t *testing.T) {
+	if testEngine.Dialect().URI().DBType == schemas.DAMENG {
+		t.SkipNow()
+		return
+	}
+
 	assert.NoError(t, PrepareEngine())
 
 	type UpdateMapUser struct {
@@ -1308,7 +1320,7 @@ func TestUpdateIgnoreOnlyFromDBFields(t *testing.T) {
 
 	assertGetRecord := func() *TestOnlyFromDBField {
 		var record TestOnlyFromDBField
-		has, err := testEngine.Where("id = ?", 1).Get(&record)
+		has, err := testEngine.Where("`id` = ?", 1).Get(&record)
 		assert.NoError(t, err)
 		assert.EqualValues(t, true, has)
 		assert.EqualValues(t, "", record.OnlyFromDBField)

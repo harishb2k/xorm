@@ -18,7 +18,7 @@ func TestIterate(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserIterate)))
+	assert.NoError(t, testEngine.Sync(new(UserIterate)))
 
 	cnt, err := testEngine.Insert(&UserIterate{
 		IsMan: true,
@@ -26,16 +26,27 @@ func TestIterate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 
+	cnt, err = testEngine.Insert(&UserIterate{
+		IsMan: false,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
 	cnt = 0
 	err = testEngine.Iterate(new(UserIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserIterate)
-		assert.EqualValues(t, 1, user.Id)
-		assert.EqualValues(t, true, user.IsMan)
+		if cnt == 0 {
+			assert.EqualValues(t, 1, user.Id)
+			assert.EqualValues(t, true, user.IsMan)
+		} else {
+			assert.EqualValues(t, 2, user.Id)
+			assert.EqualValues(t, false, user.IsMan)
+		}
 		cnt++
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, cnt)
+	assert.EqualValues(t, 2, cnt)
 }
 
 func TestBufferIterate(t *testing.T) {
@@ -46,7 +57,7 @@ func TestBufferIterate(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserBufferIterate)))
+	assert.NoError(t, testEngine.Sync(new(UserBufferIterate)))
 
 	var size = 20
 	for i := 0; i < size; i++ {
@@ -91,7 +102,7 @@ func TestBufferIterate(t *testing.T) {
 	assert.EqualValues(t, 7, cnt)
 
 	cnt = 0
-	err = testEngine.Where("id <= 10").BufferSize(2).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
+	err = testEngine.Where("`id` <= 10").BufferSize(2).Iterate(new(UserBufferIterate), func(i int, bean interface{}) error {
 		user := bean.(*UserBufferIterate)
 		assert.EqualValues(t, cnt+1, user.Id)
 		assert.EqualValues(t, true, user.IsMan)

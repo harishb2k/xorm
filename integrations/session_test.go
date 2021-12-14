@@ -18,7 +18,7 @@ func TestClose(t *testing.T) {
 	sess1.Close()
 	assert.True(t, sess1.IsClosed())
 
-	sess2 := testEngine.Where("a = ?", 1)
+	sess2 := testEngine.Where("`a` = ?", 1)
 	sess2.Close()
 	assert.True(t, sess2.IsClosed())
 }
@@ -32,7 +32,7 @@ func TestNullFloatStruct(t *testing.T) {
 	}
 
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(MyNullFloatStruct)))
+	assert.NoError(t, testEngine.Sync(new(MyNullFloatStruct)))
 
 	_, err := testEngine.Insert(&MyNullFloatStruct{
 		Uuid: "111111",

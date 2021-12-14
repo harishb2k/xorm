@@ -21,7 +21,7 @@ func BenchmarkGetVars(b *testing.B) {
 		Name string
 	}
 
-	assert.NoError(b, testEngine.Sync2(new(BenchmarkGetVars)))
+	assert.NoError(b, testEngine.Sync(new(BenchmarkGetVars)))
 
 	var v = BenchmarkGetVars{
 		Name: "myname",
@@ -32,7 +32,7 @@ func BenchmarkGetVars(b *testing.B) {
 	b.StartTimer()
 	var myname string
 	for i := 0; i < b.N; i++ {
-		has, err := testEngine.Cols("name").Table("benchmark_get_vars").Where("id=?", v.Id).Get(&myname)
+		has, err := testEngine.Cols("name").Table("benchmark_get_vars").Where("`id`=?", v.Id).Get(&myname)
 		b.StopTimer()
 		myname = ""
 		assert.True(b, has)
@@ -52,7 +52,7 @@ func BenchmarkGetStruct(b *testing.B) {
 		Name string
 	}
 
-	assert.NoError(b, testEngine.Sync2(new(BenchmarkGetStruct)))
+	assert.NoError(b, testEngine.Sync(new(BenchmarkGetStruct)))
 
 	var v = BenchmarkGetStruct{
 		Name: "myname",
@@ -84,7 +84,7 @@ func BenchmarkFindStruct(b *testing.B) {
 		Name string
 	}
 
-	assert.NoError(b, testEngine.Sync2(new(BenchmarkFindStruct)))
+	assert.NoError(b, testEngine.Sync(new(BenchmarkFindStruct)))
 
 	var v = BenchmarkFindStruct{
 		Name: "myname",
@@ -92,8 +92,8 @@ func BenchmarkFindStruct(b *testing.B) {
 	_, err := testEngine.Insert(&v)
 	assert.NoError(b, err)
 
-	b.StartTimer()
 	var mynames = make([]BenchmarkFindStruct, 0, 1)
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		err := testEngine.Find(&mynames)
 		b.StopTimer()

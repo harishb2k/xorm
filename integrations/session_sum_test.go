@@ -23,7 +23,7 @@ func TestSum(t *testing.T) {
 	}
 
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(SumStruct)))
+	assert.NoError(t, testEngine.Sync(new(SumStruct)))
 
 	var (
 		cases = []SumStruct{
@@ -82,7 +82,7 @@ func (s SumStructWithTableName) TableName() string {
 
 func TestSumWithTableName(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(SumStructWithTableName)))
+	assert.NoError(t, testEngine.Sync(new(SumStructWithTableName)))
 
 	var (
 		cases = []SumStructWithTableName{
@@ -146,7 +146,7 @@ func TestSumCustomColumn(t *testing.T) {
 		}
 	)
 
-	assert.NoError(t, testEngine.Sync2(new(SumStruct2)))
+	assert.NoError(t, testEngine.Sync(new(SumStruct2)))
 
 	cnt, err := testEngine.Insert(cases)
 	assert.NoError(t, err)

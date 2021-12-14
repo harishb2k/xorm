@@ -37,7 +37,7 @@ func TestTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	user2 := Userinfo{Username: "yyy"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	_, err = session.Where("`id` = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
 	_, err = session.Delete(&user2)
@@ -70,10 +70,10 @@ func TestCombineTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	user2 := Userinfo{Username: "zzz"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	_, err = session.Where("`id` = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from "+testEngine.TableName("userinfo", true)+" where username = ?", user2.Username)
+	_, err = session.Exec("delete from "+testEngine.Quote(testEngine.TableName("userinfo", true))+" where `username` = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -113,10 +113,10 @@ func TestCombineTransactionSameMapper(t *testing.T) {
 	assert.NoError(t, err)
 
 	user2 := Userinfo{Username: "zzz"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	_, err = session.Where("`id` = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
-	_, err = session.Exec("delete from  "+testEngine.TableName("`Userinfo`", true)+" where `Username` = ?", user2.Username)
+	_, err = session.Exec("delete from  "+testEngine.Quote(testEngine.TableName("Userinfo", true))+" where `Username` = ?", user2.Username)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -144,7 +144,7 @@ func TestMultipleTransaction(t *testing.T) {
 	assert.NoError(t, err)
 
 	user2 := MultipleTransaction{Name: "zzz"}
-	_, err = session.Where("id = ?", 0).Update(&user2)
+	_, err = session.Where("`id` = ?", 0).Update(&user2)
 	assert.NoError(t, err)
 
 	err = session.Commit()
@@ -158,7 +158,7 @@ func TestMultipleTransaction(t *testing.T) {
 	err = session.Begin()
 	assert.NoError(t, err)
 
-	_, err = session.Where("id=?", m1.Id).Delete(new(MultipleTransaction))
+	_, err = session.Where("`id`=?", m1.Id).Delete(new(MultipleTransaction))
 	assert.NoError(t, err)
 
 	err = session.Commit()

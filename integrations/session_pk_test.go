@@ -121,7 +121,7 @@ func TestInt16Id(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans))
 
-	beans2 := make(map[int16]Int16Id, 0)
+	beans2 := make(map[int16]Int16Id)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -154,7 +154,7 @@ func TestInt32Id(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans))
 
-	beans2 := make(map[int32]Int32Id, 0)
+	beans2 := make(map[int32]Int32Id)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -205,7 +205,7 @@ func TestUintId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(beans))
 
-	beans2 := make(map[uint]UintId, 0)
+	beans2 := make(map[uint]UintId)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(beans2))
@@ -239,7 +239,7 @@ func TestUint16Id(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans))
 
-	beans2 := make(map[uint16]Uint16Id, 0)
+	beans2 := make(map[uint16]Uint16Id)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -273,7 +273,7 @@ func TestUint32Id(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans))
 
-	beans2 := make(map[uint32]Uint32Id, 0)
+	beans2 := make(map[uint32]Uint32Id)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -310,7 +310,7 @@ func TestUint64Id(t *testing.T) {
 	assert.EqualValues(t, 1, len(beans))
 	assert.EqualValues(t, *bean, beans[0])
 
-	beans2 := make(map[uint64]Uint64Id, 0)
+	beans2 := make(map[uint64]Uint64Id)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -533,7 +533,7 @@ func TestMyIntId(t *testing.T) {
 	assert.EqualValues(t, 1, len(beans))
 	assert.EqualValues(t, *bean, beans[0])
 
-	beans2 := make(map[ID]MyIntPK, 0)
+	beans2 := make(map[ID]MyIntPK)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -570,7 +570,7 @@ func TestMyStringId(t *testing.T) {
 	assert.EqualValues(t, 1, len(beans))
 	assert.EqualValues(t, *bean, beans[0])
 
-	beans2 := make(map[StrID]MyStringPK, 0)
+	beans2 := make(map[StrID]MyStringPK)
 	err = testEngine.Find(&beans2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(beans2))
@@ -607,7 +607,7 @@ func TestCompositePK(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertSync(t, new(TaskSolution))
-	assert.NoError(t, testEngine.Sync2(new(TaskSolution)))
+	assert.NoError(t, testEngine.Sync(new(TaskSolution)))
 
 	tables2, err := testEngine.DBMetas()
 	assert.NoError(t, err)

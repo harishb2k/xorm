@@ -3,6 +3,21 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.2.2](https://gitea.com/xorm/xorm/releases/tag/1.2.2) - 2021-08-11
+
+* MISC
+  * Move convert back to xorm.io/xorm/convert (#2030)
+
+## [1.2.1](https://gitea.com/xorm/xorm/releases/tag/1.2.1) - 2021-08-08
+
+* FEATURES
+  * Add pgx driver support (#1795)
+* BUGFIXES
+  * Fix wrong comment (#2027)
+  * Fix import file bug (#2025)
+* ENHANCEMENTS
+  * Fix timesatmp (#2021)
+
 ## [1.2.0](https://gitea.com/xorm/xorm/releases/tag/1.2.0) - 2021-08-04
 
 * BREAKING

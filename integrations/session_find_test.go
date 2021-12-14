@@ -33,7 +33,7 @@ func TestJoinLimit(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Salary), new(CheckList), new(Empsetting)))
+	assert.NoError(t, testEngine.Sync(new(Salary), new(CheckList), new(Empsetting)))
 
 	var emp Empsetting
 	cnt, err := testEngine.Insert(&emp)
@@ -56,8 +56,8 @@ func TestJoinLimit(t *testing.T) {
 
 	var salaries []Salary
 	err = testEngine.Table("salary").
-		Join("INNER", "check_list", "check_list.id = salary.lid").
-		Join("LEFT", "empsetting", "empsetting.id = check_list.eid").
+		Join("INNER", "check_list", "`check_list`.`id` = `salary`.`lid`").
+		Join("LEFT", "empsetting", "`empsetting`.`id` = `check_list`.`eid`").
 		Limit(10, 0).
 		Find(&salaries)
 	assert.NoError(t, err)
@@ -69,10 +69,10 @@ func TestWhere(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	users := make([]Userinfo, 0)
-	err := testEngine.Where("id > ?", 2).Find(&users)
+	err := testEngine.Where("`id` > ?", 2).Find(&users)
 	assert.NoError(t, err)
 
-	err = testEngine.Where("id > ?", 2).And("id < ?", 10).Find(&users)
+	err = testEngine.Where("`id` > ?", 2).And("`id` < ?", 10).Find(&users)
 	assert.NoError(t, err)
 }
 
@@ -121,54 +121,54 @@ func (TeamUser) TableName() string {
 func TestFind3(t *testing.T) {
 	var teamUser = new(TeamUser)
 	assert.NoError(t, PrepareEngine())
-	err := testEngine.Sync2(new(Team), teamUser)
+	err := testEngine.Sync(new(Team), teamUser)
 	assert.NoError(t, err)
 
 	var teams []Team
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", "`team_user`", "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`team`.`id`").
+		Where("`team_user`.`org_id`=?", 1).
+		And("`team_user`.`uid`=?", 2).
+		Join("INNER", "`team_user`", "`team_user`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
 	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", teamUser, "`team_user`.team_id=`team`.id").
+		Where("`team_user`.`org_id`=?", 1).
+		And("`team_user`.`uid`=?", 2).
+		Join("INNER", teamUser, "`team_user`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`team_user`.org_id=?", 1).
-		And("`team_user`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser}, "`team_user`.team_id=`team`.id").
+	err = testEngine.Cols("`team`.`id`").
+		Where("`team_user`.`org_id`=?", 1).
+		And("`team_user`.`uid`=?", 2).
+		Join("INNER", []interface{}{teamUser}, "`team_user`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []string{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`team`.`id`").
+		Where("`tu`.`org_id`=?", 1).
+		And("`tu`.`uid`=?", 2).
+		Join("INNER", []string{"team_user", "tu"}, "`tu`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`team`.`id`").
+		Where("`tu`.`org_id`=?", 1).
+		And("`tu`.`uid`=?", 2).
+		Join("INNER", []interface{}{"team_user", "tu"}, "`tu`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 
 	teams = make([]Team, 0)
-	err = testEngine.Cols("`team`.id").
-		Where("`tu`.org_id=?", 1).
-		And("`tu`.uid=?", 2).
-		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.team_id=`team`.id").
+	err = testEngine.Cols("`team`.`id`").
+		Where("`tu`.`org_id`=?", 1).
+		And("`tu`.`uid`=?", 2).
+		Join("INNER", []interface{}{teamUser, "tu"}, "`tu`.`team_id`=`team`.`id`").
 		Find(&teams)
 	assert.NoError(t, err)
 }
@@ -241,7 +241,7 @@ func TestOrder(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	users := make([]Userinfo, 0)
-	err := testEngine.OrderBy("id desc").Find(&users)
+	err := testEngine.OrderBy("`id` desc").Find(&users)
 	assert.NoError(t, err)
 
 	users2 := make([]Userinfo, 0)
@@ -254,7 +254,7 @@ func TestGroupBy(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy("id, username").Find(&users)
+	err := testEngine.GroupBy("`id`, `username`").Find(&users)
 	assert.NoError(t, err)
 }
 
@@ -263,7 +263,7 @@ func TestHaving(t *testing.T) {
 	assertSync(t, new(Userinfo))
 
 	users := make([]Userinfo, 0)
-	err := testEngine.GroupBy("username").Having("username='xlw'").Find(&users)
+	err := testEngine.GroupBy("`username`").Having("`username`='xlw'").Find(&users)
 	assert.NoError(t, err)
 }
 
@@ -499,7 +499,7 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	assert.EqualValues(t, 2, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).FindAndCount(&results)
+	cnt, err = testEngine.Where("`msg` = ?", true).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
@@ -549,21 +549,21 @@ func TestFindAndCountOneFunc(t *testing.T) {
 	}, results[0])
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Select("id, content, msg").
+	cnt, err = testEngine.Where("`msg` = ?", true).Select("`id`, `content`, `msg`").
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Cols("id", "content", "msg").
+	cnt, err = testEngine.Where("`msg` = ?", true).Cols("id", "content", "msg").
 		Limit(1).FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
 	assert.EqualValues(t, 1, cnt)
 
 	results = make([]FindAndCountStruct, 0, 1)
-	cnt, err = testEngine.Where("msg = ?", true).Desc("id").
+	cnt, err = testEngine.Where("`msg` = ?", true).Desc("id").
 		Limit(1).Cols("content").FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(results))
@@ -649,7 +649,7 @@ func TestFindAndCount2(t *testing.T) {
 	cnt, err = testEngine.
 		Table(new(TestFindAndCountHotel)).
 		Alias("t").
-		Where("t.region like '6501%'").
+		Where("`t`.`region` like '6501%'").
 		Limit(10, 0).
 		FindAndCount(&hotels)
 	assert.NoError(t, err)
@@ -690,7 +690,7 @@ func TestFindAndCountWithGroupBy(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(FindAndCountWithGroupBy)))
+	assert.NoError(t, testEngine.Sync(new(FindAndCountWithGroupBy)))
 
 	_, err := testEngine.Insert([]FindAndCountWithGroupBy{
 		{
@@ -705,7 +705,7 @@ func TestFindAndCountWithGroupBy(t *testing.T) {
 	assert.NoError(t, err)
 
 	var results []FindAndCountWithGroupBy
-	cnt, err := testEngine.GroupBy("age").FindAndCount(&results)
+	cnt, err := testEngine.GroupBy("`age`").FindAndCount(&results)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, cnt)
 	assert.EqualValues(t, 2, len(results))
@@ -735,14 +735,14 @@ func TestFindMapStringId(t *testing.T) {
 
 	deviceMaps := make(map[string]*FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
+		Where("`status` = ?", 1).
 		In("deviceid", deviceIDs).
 		Find(&deviceMaps)
 	assert.NoError(t, err)
 
 	deviceMaps2 := make(map[string]FindMapDevice, len(deviceIDs))
 	err = testEngine.
-		Where("status = ?", 1).
+		Where("`status` = ?", 1).
 		In("deviceid", deviceIDs).
 		Find(&deviceMaps2)
 	assert.NoError(t, err)
@@ -919,17 +919,17 @@ func TestFindJoin(t *testing.T) {
 	assertSync(t, new(SceneItem), new(DeviceUserPrivrels), new(Order))
 
 	var scenes []SceneItem
-	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err := testEngine.Join("LEFT OUTER", "device_user_privrels", "`device_user_privrels`.`device_id`=`scene_item`.`device_id`").
+		Where("`scene_item`.`type`=?", 3).Or("`device_user_privrels`.`user_id`=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 
 	scenes = make([]SceneItem, 0)
-	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), "device_user_privrels.device_id=scene_item.device_id").
-		Where("scene_item.type=?", 3).Or("device_user_privrels.user_id=?", 339).Find(&scenes)
+	err = testEngine.Join("LEFT OUTER", new(DeviceUserPrivrels), "`device_user_privrels`.`device_id`=`scene_item`.`device_id`").
+		Where("`scene_item`.`type`=?", 3).Or("`device_user_privrels`.`user_id`=?", 339).Find(&scenes)
 	assert.NoError(t, err)
 
 	scenes = make([]SceneItem, 0)
-	err = testEngine.Join("INNER", "order", "`scene_item`.device_id=`order`.id").Find(&scenes)
+	err = testEngine.Join("INNER", "order", "`scene_item`.`device_id`=`order`.`id`").Find(&scenes)
 	assert.NoError(t, err)
 }
 
@@ -949,7 +949,7 @@ func TestJoinFindLimit(t *testing.T) {
 	assertSync(t, new(JoinFindLimit1), new(JoinFindLimit2))
 
 	var finds []JoinFindLimit1
-	err := testEngine.Join("INNER", new(JoinFindLimit2), "join_find_limit2.eid=join_find_limit1.id").
+	err := testEngine.Join("INNER", new(JoinFindLimit2), "`join_find_limit2`.`eid`=`join_find_limit1`.`id`").
 		Limit(10, 10).Find(&finds)
 	assert.NoError(t, err)
 }
@@ -981,9 +981,9 @@ func TestMoreExtends(t *testing.T) {
 	assertSync(t, new(MoreExtendsUsers), new(MoreExtendsBooks))
 
 	var books []MoreExtendsBooksExtend
-	err := testEngine.Table("more_extends_books").Select("more_extends_books.*, more_extends_users.*").
-		Join("INNER", "more_extends_users", "more_extends_books.user_id = more_extends_users.id").
-		Where("more_extends_books.name LIKE ?", "abc").
+	err := testEngine.Table("more_extends_books").Select("`more_extends_books`.*, `more_extends_users`.*").
+		Join("INNER", "more_extends_users", "`more_extends_books`.`user_id` = `more_extends_users`.`id`").
+		Where("`more_extends_books`.`name` LIKE ?", "abc").
 		Limit(10, 10).
 		Find(&books)
 	assert.NoError(t, err)
@@ -991,9 +991,9 @@ func TestMoreExtends(t *testing.T) {
 	books = make([]MoreExtendsBooksExtend, 0, len(books))
 	err = testEngine.Table("more_extends_books").
 		Alias("m").
-		Select("m.*, more_extends_users.*").
-		Join("INNER", "more_extends_users", "m.user_id = more_extends_users.id").
-		Where("m.name LIKE ?", "abc").
+		Select("`m`.*, `more_extends_users`.*").
+		Join("INNER", "more_extends_users", "`m`.`user_id` = `more_extends_users`.`id`").
+		Where("`m`.`name` LIKE ?", "abc").
 		Limit(10, 10).
 		Find(&books)
 	assert.NoError(t, err)
@@ -1038,10 +1038,50 @@ func TestUpdateFind(t *testing.T) {
 	}
 	_, err := session.Insert(&tuf)
 	assert.NoError(t, err)
-	_, err = session.Where("id = ?", tuf.Id).Update(&TestUpdateFind{})
+	_, err = session.Where("`id` = ?", tuf.Id).Update(&TestUpdateFind{})
 	assert.EqualError(t, xorm.ErrNoColumnsTobeUpdated, err.Error())
 
 	var tufs []TestUpdateFind
-	err = session.Where("id = ?", tuf.Id).Find(&tufs)
+	err = session.Where("`id` = ?", tuf.Id).Find(&tufs)
 	assert.NoError(t, err)
+}
+
+func TestFindAnonymousStruct(t *testing.T) {
+	type FindAnonymousStruct struct {
+		Id    int64
+		Name  string
+		Age   int
+		IsMan bool
+	}
+
+	assert.NoError(t, PrepareEngine())
+	assertSync(t, new(FindAnonymousStruct))
+
+	cnt, err := testEngine.Insert(&FindAnonymousStruct{
+		Name:  "xlw",
+		Age:   42,
+		IsMan: true,
+	})
+	assert.EqualValues(t, 1, cnt)
+	assert.NoError(t, err)
+
+	var findRes = make([]struct {
+		Id   int64
+		Name string
+	}, 0)
+	err = testEngine.Table(new(FindAnonymousStruct)).Find(&findRes)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(findRes))
+	assert.EqualValues(t, 1, findRes[0].Id)
+	assert.EqualValues(t, "xlw", findRes[0].Name)
+
+	findRes = make([]struct {
+		Id   int64
+		Name string
+	}, 0)
+	err = testEngine.Select("`id`,`name`").Table(new(FindAnonymousStruct)).Find(&findRes)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(findRes))
+	assert.EqualValues(t, 1, findRes[0].Id)
+	assert.EqualValues(t, "xlw", findRes[0].Name)
 }

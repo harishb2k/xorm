@@ -20,7 +20,7 @@ func TestSetExpr(t *testing.T) {
 		Title string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserExprIssue)))
+	assert.NoError(t, testEngine.Sync(new(UserExprIssue)))
 
 	var issue = UserExprIssue{
 		Title: "my issue",
@@ -36,7 +36,7 @@ func TestSetExpr(t *testing.T) {
 		Show    bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserExpr)))
+	assert.NoError(t, testEngine.Sync(new(UserExpr)))
 
 	cnt, err = testEngine.Insert(&UserExpr{
 		Show: true,
@@ -45,7 +45,7 @@ func TestSetExpr(t *testing.T) {
 	assert.EqualValues(t, 1, cnt)
 
 	var not = "NOT"
-	if testEngine.Dialect().URI().DBType == schemas.MSSQL {
+	if testEngine.Dialect().URI().DBType == schemas.MSSQL || testEngine.Dialect().URI().DBType == schemas.DAMENG {
 		not = "~"
 	}
 	cnt, err = testEngine.SetExpr("show", not+" `show`").ID(1).Update(new(UserExpr))
@@ -54,9 +54,9 @@ func TestSetExpr(t *testing.T) {
 
 	tableName := testEngine.TableName(new(UserExprIssue), true)
 	cnt, err = testEngine.SetExpr("issue_id",
-		builder.Select("id").
-			From(tableName).
-			Where(builder.Eq{"id": issue.Id})).
+		builder.Select("`id`").
+			From(testEngine.Quote(tableName)).
+			Where(builder.Eq{"`id`": issue.Id})).
 		ID(1).
 		Update(new(UserExpr))
 	assert.NoError(t, err)
