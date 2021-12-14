@@ -32,7 +32,7 @@ func TestNullFloatStruct(t *testing.T) {
 	}
 
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(MyNullFloatStruct)))
+	assert.NoError(t, testEngine.Sync(new(MyNullFloatStruct)))
 
 	_, err := testEngine.Insert(&MyNullFloatStruct{
 		Uuid: "111111",

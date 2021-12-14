@@ -45,7 +45,8 @@ func TestAlwaysQuoteTo(t *testing.T) {
 	for _, v := range kases {
 		t.Run(v.value, func(t *testing.T) {
 			buf := &strings.Builder{}
-			quoter.QuoteTo(buf, v.value)
+			err := quoter.QuoteTo(buf, v.value)
+			assert.NoError(t, err)
 			assert.EqualValues(t, v.expected, buf.String())
 		})
 	}
@@ -54,10 +55,7 @@ func TestAlwaysQuoteTo(t *testing.T) {
 func TestReversedQuoteTo(t *testing.T) {
 	var (
 		quoter = Quoter{'[', ']', func(s string) bool {
-			if s == "mytable" {
-				return true
-			}
-			return false
+			return s == "mytable"
 		}}
 		kases = []struct {
 			expected string
@@ -118,7 +116,8 @@ func TestNoQuoteTo(t *testing.T) {
 	for _, v := range kases {
 		t.Run(v.value, func(t *testing.T) {
 			buf := &strings.Builder{}
-			quoter.QuoteTo(buf, v.value)
+			err := quoter.QuoteTo(buf, v.value)
+			assert.NoError(t, err)
 			assert.EqualValues(t, v.expected, buf.String())
 		})
 	}

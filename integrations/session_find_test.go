@@ -33,7 +33,7 @@ func TestJoinLimit(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Salary), new(CheckList), new(Empsetting)))
+	assert.NoError(t, testEngine.Sync(new(Salary), new(CheckList), new(Empsetting)))
 
 	var emp Empsetting
 	cnt, err := testEngine.Insert(&emp)
@@ -121,7 +121,7 @@ func (TeamUser) TableName() string {
 func TestFind3(t *testing.T) {
 	var teamUser = new(TeamUser)
 	assert.NoError(t, PrepareEngine())
-	err := testEngine.Sync2(new(Team), teamUser)
+	err := testEngine.Sync(new(Team), teamUser)
 	assert.NoError(t, err)
 
 	var teams []Team
@@ -690,7 +690,7 @@ func TestFindAndCountWithGroupBy(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(FindAndCountWithGroupBy)))
+	assert.NoError(t, testEngine.Sync(new(FindAndCountWithGroupBy)))
 
 	_, err := testEngine.Insert([]FindAndCountWithGroupBy{
 		{

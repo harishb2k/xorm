@@ -33,7 +33,7 @@ func TestGetVar(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar)))
+	assert.NoError(t, testEngine.Sync(new(GetVar)))
 
 	var data = GetVar{
 		Msg:   "hi",
@@ -235,7 +235,7 @@ func TestGetStruct(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoGet)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoGet)))
 
 	session := testEngine.NewSession()
 	defer session.Close()
@@ -266,7 +266,7 @@ func TestGetStruct(t *testing.T) {
 		Total  int64
 	}
 
-	assert.NoError(t, testEngine.Sync2(&NoIdUser{}))
+	assert.NoError(t, testEngine.Sync(&NoIdUser{}))
 
 	userCol := testEngine.GetColumnMapper().Obj2Table("User")
 	_, err = testEngine.Where("`"+userCol+"` = ?", "xlw").Delete(&NoIdUser{})
@@ -576,7 +576,7 @@ func (MyGetCustomTableImpletation) TableName() string {
 
 func TestGetCustomTableInterface(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Table(getCustomTableName).Sync2(new(MyGetCustomTableImpletation)))
+	assert.NoError(t, testEngine.Table(getCustomTableName).Sync(new(MyGetCustomTableImpletation)))
 
 	exist, err := testEngine.IsTableExist(getCustomTableName)
 	assert.NoError(t, err)
@@ -889,4 +889,90 @@ func TestGetTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, gts.CreateTime.Format(time.RFC3339), gn.Format(time.RFC3339))
+}
+
+func TestGetVars(t *testing.T) {
+	type GetVars struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, PrepareEngine())
+	assertSync(t, new(GetVars))
+
+	_, err := testEngine.Insert(&GetVars{
+		Name: "xlw",
+		Age:  42,
+	})
+	assert.NoError(t, err)
+
+	var name string
+	var age int
+	has, err := testEngine.Table(new(GetVars)).Cols("name", "age").Get(&name, &age)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "xlw", name)
+	assert.EqualValues(t, 42, age)
+}
+
+func TestGetWithPrepare(t *testing.T) {
+	type GetVarsWithPrepare struct {
+		Id   int64
+		Name string
+		Age  int
+	}
+
+	assert.NoError(t, PrepareEngine())
+	assertSync(t, new(GetVarsWithPrepare))
+
+	_, err := testEngine.Insert(&GetVarsWithPrepare{
+		Name: "xlw",
+		Age:  42,
+	})
+	assert.NoError(t, err)
+
+	var v1 GetVarsWithPrepare
+	has, err := testEngine.Prepare().ID(1).Get(&v1)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "xlw", v1.Name)
+	assert.EqualValues(t, 42, v1.Age)
+
+	sess := testEngine.NewSession()
+	defer sess.Close()
+
+	var v2 GetVarsWithPrepare
+	has, err = sess.Prepare().ID(1).Get(&v2)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "xlw", v2.Name)
+	assert.EqualValues(t, 42, v2.Age)
+
+	var v3 GetVarsWithPrepare
+	has, err = sess.Prepare().ID(1).Get(&v3)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, "xlw", v3.Name)
+	assert.EqualValues(t, 42, v3.Age)
+
+	err = sess.Begin()
+	assert.NoError(t, err)
+
+	cnt, err := sess.Prepare().Insert(&GetVarsWithPrepare{
+		Name: "xlw2",
+		Age:  12,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	cnt, err = sess.Prepare().Insert(&GetVarsWithPrepare{
+		Name: "xlw3",
+		Age:  13,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	err = sess.Commit()
+	assert.NoError(t, err)
 }

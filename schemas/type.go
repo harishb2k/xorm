@@ -332,6 +332,10 @@ func SQLType2Type(st SQLType) reflect.Type {
 		return IntType
 	case BigInt, BigSerial:
 		return Int64Type
+	case UnsignedBit, UnsignedTinyInt, UnsignedSmallInt, UnsignedMediumInt, UnsignedInt:
+		return UintType
+	case UnsignedBigInt:
+		return Uint64Type
 	case Float, Real:
 		return Float32Type
 	case Double:

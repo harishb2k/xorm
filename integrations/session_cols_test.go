@@ -20,7 +20,7 @@ func TestSetExpr(t *testing.T) {
 		Title string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserExprIssue)))
+	assert.NoError(t, testEngine.Sync(new(UserExprIssue)))
 
 	var issue = UserExprIssue{
 		Title: "my issue",
@@ -36,7 +36,7 @@ func TestSetExpr(t *testing.T) {
 		Show    bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserExpr)))
+	assert.NoError(t, testEngine.Sync(new(UserExpr)))
 
 	cnt, err = testEngine.Insert(&UserExpr{
 		Show: true,

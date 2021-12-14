@@ -98,7 +98,7 @@ help:
 	@echo " - build             creates the entire project"
 	@echo " - clean             delete integration files and build files but not css and js files"
 	@echo " - fmt               format the code"
-	@echo " - lint            	run code linter revive"
+	@echo " - lint            	run code linter"
 	@echo " - misspell          check if a word is written wrong"
 	@echo " - test       		run default unit test"
 	@echo " - test-cockroach    run integration tests for cockroach"
@@ -111,7 +111,25 @@ help:
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 
 .PHONY: lint
-lint: revive
+lint: golangci-lint
+
+.PHONY: golangci-lint
+golangci-lint: golangci-lint-check
+	golangci-lint run --timeout 10m
+
+.PHONY: golangci-lint-check
+golangci-lint-check:
+	$(eval GOLANGCI_LINT_VERSION := $(shell printf "%03d%03d%03d" $(shell golangci-lint --version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval MIN_GOLANGCI_LINT_VER_FMT := $(shell printf "%g.%g.%g" $(shell echo $(MIN_GOLANGCI_LINT_VERSION) | grep -o ...)))
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Downloading golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	elif [ "$(GOLANGCI_LINT_VERSION)" -lt "$(MIN_GOLANGCI_LINT_VERSION)" ]; then \
+		echo "Downloading newer version of golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	fi
 
 .PHONY: revive
 revive:
@@ -188,6 +206,18 @@ test-mysql: go-check
 test-mysql\#%: go-check
 	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=mysql -cache=$(TEST_CACHE_ENABLE) -quote=$(TEST_QUOTE_POLICY) \
 	-conn_str="$(TEST_MYSQL_USERNAME):$(TEST_MYSQL_PASSWORD)@tcp($(TEST_MYSQL_HOST))/$(TEST_MYSQL_DBNAME)?charset=$(TEST_MYSQL_CHARSET)" \
+	-coverprofile=mysql.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
+
+.PNONY: test-mysql-tls
+test-mysql-tls: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -db=mysql -cache=$(TEST_CACHE_ENABLE) -quote=$(TEST_QUOTE_POLICY) \
+	-conn_str="$(TEST_MYSQL_USERNAME):$(TEST_MYSQL_PASSWORD)@tcp($(TEST_MYSQL_HOST))/$(TEST_MYSQL_DBNAME)?charset=$(TEST_MYSQL_CHARSET)&tls=skip-verify" \
+	-coverprofile=mysql.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic -timeout=20m
+
+.PHONY: test-mysql-tls\#%
+test-mysql-tls\#%: go-check
+	$(GO) test $(INTEGRATION_PACKAGES) -v -race -run $* -db=mysql -cache=$(TEST_CACHE_ENABLE) -quote=$(TEST_QUOTE_POLICY) \
+	-conn_str="$(TEST_MYSQL_USERNAME):$(TEST_MYSQL_PASSWORD)@tcp($(TEST_MYSQL_HOST))/$(TEST_MYSQL_DBNAME)?charset=$(TEST_MYSQL_CHARSET)&tls=skip-verify" \
 	-coverprofile=mysql.$(TEST_QUOTE_POLICY).$(TEST_CACHE_ENABLE).coverage.out -covermode=atomic
 
 .PNONY: test-postgres

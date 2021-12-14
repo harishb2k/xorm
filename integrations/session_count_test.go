@@ -17,7 +17,7 @@ func TestCount(t *testing.T) {
 	type UserinfoCount struct {
 		Departname string
 	}
-	assert.NoError(t, testEngine.Sync2(new(UserinfoCount)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoCount)))
 
 	colName := testEngine.GetColumnMapper().Obj2Table("Departname")
 	var cond builder.Cond = builder.Eq{

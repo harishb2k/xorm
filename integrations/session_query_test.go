@@ -26,7 +26,7 @@ func TestQueryString(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar2)))
+	assert.NoError(t, testEngine.Sync(new(GetVar2)))
 
 	var data = GetVar2{
 		Msg:   "hi",
@@ -54,7 +54,7 @@ func TestQueryString2(t *testing.T) {
 		Msg bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar3)))
+	assert.NoError(t, testEngine.Sync(new(GetVar3)))
 
 	var data = GetVar3{
 		Msg: false,
@@ -91,7 +91,7 @@ func TestQueryInterface(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVarInterface)))
+	assert.NoError(t, testEngine.Sync(new(GetVarInterface)))
 
 	var data = GetVarInterface{
 		Msg:   "hi",
@@ -124,7 +124,7 @@ func TestQueryNoParams(t *testing.T) {
 
 	testEngine.ShowSQL(true)
 
-	assert.NoError(t, testEngine.Sync2(new(QueryNoParams)))
+	assert.NoError(t, testEngine.Sync(new(QueryNoParams)))
 
 	var q = QueryNoParams{
 		Msg:   "message",
@@ -168,7 +168,7 @@ func TestQueryStringNoParam(t *testing.T) {
 		Msg bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar4)))
+	assert.NoError(t, testEngine.Sync(new(GetVar4)))
 
 	var data = GetVar4{
 		Msg: false,
@@ -205,7 +205,7 @@ func TestQuerySliceStringNoParam(t *testing.T) {
 		Msg bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar6)))
+	assert.NoError(t, testEngine.Sync(new(GetVar6)))
 
 	var data = GetVar6{
 		Msg: false,
@@ -242,7 +242,7 @@ func TestQueryInterfaceNoParam(t *testing.T) {
 		Msg bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(GetVar5)))
+	assert.NoError(t, testEngine.Sync(new(GetVar5)))
 
 	var data = GetVar5{
 		Msg: false,
@@ -276,7 +276,7 @@ func TestQueryWithBuilder(t *testing.T) {
 
 	testEngine.ShowSQL(true)
 
-	assert.NoError(t, testEngine.Sync2(new(QueryWithBuilder)))
+	assert.NoError(t, testEngine.Sync(new(QueryWithBuilder)))
 
 	var q = QueryWithBuilder{
 		Msg:   "message",
@@ -325,7 +325,7 @@ func TestJoinWithSubQuery(t *testing.T) {
 
 	testEngine.ShowSQL(true)
 
-	assert.NoError(t, testEngine.Sync2(new(JoinWithSubQuery1), new(JoinWithSubQueryDepart)))
+	assert.NoError(t, testEngine.Sync(new(JoinWithSubQuery1), new(JoinWithSubQueryDepart)))
 
 	var depart = JoinWithSubQueryDepart{
 		Name: "depart1",
@@ -375,7 +375,7 @@ func TestQueryStringWithLimit(t *testing.T) {
 		Money    float32
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(QueryWithLimit)))
+	assert.NoError(t, testEngine.Sync(new(QueryWithLimit)))
 
 	data, err := testEngine.Table("query_with_limit").Limit(20, 20).QueryString()
 	assert.NoError(t, err)

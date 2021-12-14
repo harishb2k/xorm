@@ -25,7 +25,7 @@ func TestInsertOne(t *testing.T) {
 		Created time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Test)))
+	assert.NoError(t, testEngine.Sync(new(Test)))
 
 	data := Test{Msg: "hi"}
 	_, err := testEngine.InsertOne(data)
@@ -39,7 +39,7 @@ func TestInsertMulti(t *testing.T) {
 		Name string `xorm:"varchar(255)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestMulti)))
+	assert.NoError(t, testEngine.Sync(new(TestMulti)))
 
 	num, err := insertMultiDatas(1,
 		append([]TestMulti{}, TestMulti{1, "test1"}, TestMulti{2, "test2"}, TestMulti{3, "test3"}))
@@ -101,7 +101,7 @@ func callbackLooper(datas interface{}, step int, actionFunc func(interface{}) er
 		if err = actionFunc(tempInterface); err != nil {
 			return
 		}
-		processedLen = processedLen - step
+		processedLen -= step
 	}
 	return
 }
@@ -115,7 +115,7 @@ func TestInsertOneIfPkIsPoint(t *testing.T) {
 		Created *time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestPoint)))
+	assert.NoError(t, testEngine.Sync(new(TestPoint)))
 	msg := "hi"
 	data := TestPoint{Msg: &msg}
 	_, err := testEngine.InsertOne(&data)
@@ -131,7 +131,7 @@ func TestInsertOneIfPkIsPointRename(t *testing.T) {
 		Created *time.Time `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestPoint2)))
+	assert.NoError(t, testEngine.Sync(new(TestPoint2)))
 	msg := "hi"
 	data := TestPoint2{Msg: &msg}
 	_, err := testEngine.InsertOne(&data)
@@ -181,7 +181,7 @@ func TestInsertDefault(t *testing.T) {
 	}
 
 	di := new(DefaultInsert)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync(di)
 	assert.NoError(t, err)
 
 	var di2 = DefaultInsert{Name: "test"}
@@ -207,7 +207,7 @@ func TestInsertDefault2(t *testing.T) {
 	}
 
 	di := new(DefaultInsert2)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync(di)
 	assert.NoError(t, err)
 
 	var di2 = DefaultInsert2{Name: "test"}
@@ -258,7 +258,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	di := new(CreatedInsert)
-	err := testEngine.Sync2(di)
+	err := testEngine.Sync(di)
 	assert.NoError(t, err)
 
 	ci := &CreatedInsert{}
@@ -271,7 +271,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.EqualValues(t, ci.Created.Unix(), di.Created.Unix())
 
 	di2 := new(CreatedInsert2)
-	err = testEngine.Sync2(di2)
+	err = testEngine.Sync(di2)
 	assert.NoError(t, err)
 
 	ci2 := &CreatedInsert2{}
@@ -284,7 +284,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.EqualValues(t, ci2.Created, di2.Created)
 
 	di3 := new(CreatedInsert3)
-	err = testEngine.Sync2(di3)
+	err = testEngine.Sync(di3)
 	assert.NoError(t, err)
 
 	ci3 := &CreatedInsert3{}
@@ -297,7 +297,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.EqualValues(t, ci3.Created, di3.Created)
 
 	di4 := new(CreatedInsert4)
-	err = testEngine.Sync2(di4)
+	err = testEngine.Sync(di4)
 	assert.NoError(t, err)
 
 	ci4 := &CreatedInsert4{}
@@ -310,7 +310,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.EqualValues(t, ci4.Created, di4.Created)
 
 	di5 := new(CreatedInsert5)
-	err = testEngine.Sync2(di5)
+	err = testEngine.Sync(di5)
 	assert.NoError(t, err)
 
 	ci5 := &CreatedInsert5{}
@@ -323,7 +323,7 @@ func TestInsertCreated(t *testing.T) {
 	assert.EqualValues(t, ci5.Created.Unix(), di5.Created.Unix())
 
 	di6 := new(CreatedInsert6)
-	err = testEngine.Sync2(di6)
+	err = testEngine.Sync(di6)
 	assert.NoError(t, err)
 
 	oldTime := time.Now().Add(-time.Hour)
@@ -335,6 +335,42 @@ func TestInsertCreated(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, ci6.Created.Unix(), di6.Created.Unix())
+}
+
+func TestInsertTime(t *testing.T) {
+	type InsertTimeStruct struct {
+		Id        int64
+		CreatedAt time.Time `xorm:"created"`
+		UpdatedAt time.Time `xorm:"updated"`
+		DeletedAt time.Time `xorm:"deleted"`
+		Stime     time.Time
+		Etime     time.Time
+	}
+
+	assert.NoError(t, PrepareEngine())
+	assertSync(t, new(InsertTimeStruct))
+
+	its := &InsertTimeStruct{
+		Stime: time.Now(),
+		Etime: time.Now(),
+	}
+	cnt, err := testEngine.Insert(its)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, cnt)
+
+	var itsGet InsertTimeStruct
+	has, err := testEngine.ID(1).Get(&itsGet)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.False(t, itsGet.Stime.IsZero())
+	assert.False(t, itsGet.Etime.IsZero())
+
+	var itsFind []*InsertTimeStruct
+	err = testEngine.Find(&itsFind)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, len(itsFind))
+	assert.False(t, itsFind[0].Stime.IsZero())
+	assert.False(t, itsFind[0].Etime.IsZero())
 }
 
 type JSONTime time.Time
@@ -390,7 +426,7 @@ func TestCreatedJsonTime(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	di5 := new(MyJSONTime)
-	err := testEngine.Sync2(di5)
+	err := testEngine.Sync(di5)
 	assert.NoError(t, err)
 
 	ci5 := &MyJSONTime{}
@@ -489,7 +525,7 @@ func TestInsertCreatedInt64(t *testing.T) {
 		Created int64  `xorm:"created"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestCreatedInt64)))
+	assert.NoError(t, testEngine.Sync(new(TestCreatedInt64)))
 
 	data := TestCreatedInt64{Msg: "hi"}
 	now := time.Now()
@@ -896,7 +932,7 @@ func TestMultipleInsertTableName(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	tableName := `prd_nightly_rate_16`
-	assert.NoError(t, testEngine.Table(tableName).Sync2(new(NightlyRate)))
+	assert.NoError(t, testEngine.Table(tableName).Sync(new(NightlyRate)))
 
 	trans := testEngine.NewSession()
 	defer trans.Close()
@@ -932,7 +968,7 @@ func TestInsertMultiWithOmit(t *testing.T) {
 		Omitted string `xorm:"varchar(255) 'omitted'"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(TestMultiOmit)))
+	assert.NoError(t, testEngine.Sync(new(TestMultiOmit)))
 
 	l := []interface{}{
 		TestMultiOmit{Id: 1, Name: "1", Omitted: "1"},
@@ -977,7 +1013,7 @@ func TestInsertTwice(t *testing.T) {
 		FieldB int
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(InsertStructA), new(InsertStructB)))
+	assert.NoError(t, testEngine.Sync(new(InsertStructA), new(InsertStructB)))
 
 	var sliceA []InsertStructA // sliceA is empty
 	sliceB := []InsertStructB{
@@ -1008,7 +1044,7 @@ func TestInsertIntSlice(t *testing.T) {
 		NameIDs []int `xorm:"json notnull"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(InsertIntSlice)))
+	assert.NoError(t, testEngine.Sync(new(InsertIntSlice)))
 
 	var v = InsertIntSlice{
 		NameIDs: []int{1, 2},
@@ -1049,7 +1085,7 @@ func TestInsertDeleted(t *testing.T) {
 		DeletedAt time.Time `xorm:"'DELETED_AT' deleted notnull"`
 	}
 	// notnull tag will be ignored
-	err := testEngine.Sync2(new(InsertDeletedStructNotRight))
+	err := testEngine.Sync(new(InsertDeletedStructNotRight))
 	assert.NoError(t, err)
 
 	type InsertDeletedStruct struct {
@@ -1057,7 +1093,7 @@ func TestInsertDeleted(t *testing.T) {
 		DeletedAt time.Time `xorm:"'DELETED_AT' deleted"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(InsertDeletedStruct)))
+	assert.NoError(t, testEngine.Sync(new(InsertDeletedStruct)))
 
 	var v InsertDeletedStruct
 	_, err = testEngine.Insert(&v)

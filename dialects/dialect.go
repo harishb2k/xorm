@@ -38,11 +38,13 @@ func (uri *URI) SetSchema(schema string) {
 	}
 }
 
+// enumerates all autoincr mode
 const (
 	IncrAutoincrMode = iota
 	SequenceAutoincrMode
 )
 
+// DialectFeatures represents a dialect parameters
 type DialectFeatures struct {
 	AutoincrMode int // 0 autoincrement column, 1 sequence
 }
@@ -126,7 +128,9 @@ func (db *Base) CreateTableSQL(ctx context.Context, queryer core.Queryer, table 
 	quoter := db.dialect.Quoter()
 	var b strings.Builder
 	b.WriteString("CREATE TABLE IF NOT EXISTS ")
-	quoter.QuoteTo(&b, tableName)
+	if err := quoter.QuoteTo(&b, tableName); err != nil {
+		return "", false, err
+	}
 	b.WriteString(" (")
 
 	for i, colName := range table.ColumnsSeq() {
@@ -206,7 +210,7 @@ func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableNa
 // AddColumnSQL returns a SQL to add a column
 func (db *Base) AddColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, true)
-	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName), s)
+	return fmt.Sprintf("ALTER TABLE %s ADD %s", db.dialect.Quoter().Quote(tableName), s)
 }
 
 // CreateIndexSQL returns a SQL to create index
@@ -238,7 +242,7 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 // ModifyColumnSQL returns a SQL to modify SQL
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, false)
-	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", tableName, s)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", db.quoter.Quote(tableName), s)
 }
 
 // ForUpdateSQL returns for updateSQL

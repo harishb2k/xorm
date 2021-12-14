@@ -173,7 +173,7 @@ func (s *SyncTable3) TableName() string {
 func TestSyncTable(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable1)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable1)))
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -183,7 +183,7 @@ func TestSyncTable(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, testEngine.Dialect().SQLType(tables[0].GetColumn("name")), testEngine.Dialect().SQLType(tableInfo.GetColumn("name")))
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable2)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable2)))
 
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -193,7 +193,7 @@ func TestSyncTable(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, testEngine.Dialect().SQLType(tables[0].GetColumn("name")), testEngine.Dialect().SQLType(tableInfo.GetColumn("name")))
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable3)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable3)))
 
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -207,7 +207,7 @@ func TestSyncTable(t *testing.T) {
 func TestSyncTable2(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
-	assert.NoError(t, testEngine.Table("sync_tablex").Sync2(new(SyncTable1)))
+	assert.NoError(t, testEngine.Table("sync_tablex").Sync(new(SyncTable1)))
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -220,7 +220,7 @@ func TestSyncTable2(t *testing.T) {
 		NewCol     string
 	}
 
-	assert.NoError(t, testEngine.Table("sync_tablex").Sync2(new(SyncTable4)))
+	assert.NoError(t, testEngine.Table("sync_tablex").Sync(new(SyncTable4)))
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(tables))
@@ -241,7 +241,7 @@ func TestSyncTable3(t *testing.T) {
 
 	assert.NoError(t, PrepareEngine())
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable5)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable5)))
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -272,7 +272,7 @@ func TestSyncTable3(t *testing.T) {
 		}()
 		assert.NoError(t, PrepareEngine())
 
-		assert.NoError(t, testEngine.Sync2(new(SyncTable5)))
+		assert.NoError(t, testEngine.Sync(new(SyncTable5)))
 
 		tables, err := testEngine.DBMetas()
 		assert.NoError(t, err)
@@ -294,9 +294,9 @@ func TestSyncTable4(t *testing.T) {
 
 	assert.NoError(t, PrepareEngine())
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable6)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable6)))
 
-	assert.NoError(t, testEngine.Sync2(new(SyncTable6)))
+	assert.NoError(t, testEngine.Sync(new(SyncTable6)))
 }
 
 func TestIsTableExist(t *testing.T) {
@@ -328,14 +328,14 @@ func TestIsTableEmpty(t *testing.T) {
 		Created     time.Time `xorm:"created"`
 		ILike       int
 		PageView    int
-		From_url    string
+		From_url    string // nolint
 		Pre_url     string `xorm:"unique"` //pre view image's url
 		Uid         int64
 	}
 
 	assert.NoError(t, testEngine.DropTables(&PictureEmpty{}, &NumericEmpty{}))
 
-	assert.NoError(t, testEngine.Sync2(new(PictureEmpty), new(NumericEmpty)))
+	assert.NoError(t, testEngine.Sync(new(PictureEmpty), new(NumericEmpty)))
 
 	isEmpty, err := testEngine.IsTableEmpty(&PictureEmpty{})
 	assert.NoError(t, err)
@@ -393,7 +393,7 @@ func TestIndexAndUnique(t *testing.T) {
 
 func TestMetaInfo(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
-	assert.NoError(t, testEngine.Sync2(new(CustomTableName), new(IndexOrUnique)))
+	assert.NoError(t, testEngine.Sync(new(CustomTableName), new(IndexOrUnique)))
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -423,8 +423,8 @@ func TestSync2_1(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	assert.NoError(t, testEngine.DropTables("wx_test"))
-	assert.NoError(t, testEngine.Sync2(new(WxTest)))
-	assert.NoError(t, testEngine.Sync2(new(WxTest)))
+	assert.NoError(t, testEngine.Sync(new(WxTest)))
+	assert.NoError(t, testEngine.Sync(new(WxTest)))
 }
 
 func TestUnique_1(t *testing.T) {
@@ -440,7 +440,7 @@ func TestUnique_1(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
 	assert.NoError(t, testEngine.DropTables("user_unique"))
-	assert.NoError(t, testEngine.Sync2(new(UserUnique)))
+	assert.NoError(t, testEngine.Sync(new(UserUnique)))
 
 	assert.NoError(t, testEngine.DropTables("user_unique"))
 	assert.NoError(t, testEngine.CreateTables(new(UserUnique)))
@@ -459,7 +459,7 @@ func TestSync2_2(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tableName := fmt.Sprintf("test_sync2_index_%d", i)
 		tableNames[tableName] = true
-		assert.NoError(t, testEngine.Table(tableName).Sync2(new(TestSync2Index)))
+		assert.NoError(t, testEngine.Table(tableName).Sync(new(TestSync2Index)))
 
 		exist, err := testEngine.IsTableExist(tableName)
 		assert.NoError(t, err)
@@ -484,7 +484,7 @@ func TestSync2_Default(t *testing.T) {
 
 	assert.NoError(t, PrepareEngine())
 	assertSync(t, new(TestSync2Default))
-	assert.NoError(t, testEngine.Sync2(new(TestSync2Default)))
+	assert.NoError(t, testEngine.Sync(new(TestSync2Default)))
 }
 
 func TestSync2_Default2(t *testing.T) {
@@ -497,9 +497,9 @@ func TestSync2_Default2(t *testing.T) {
 
 	assert.NoError(t, PrepareEngine())
 	assertSync(t, new(TestSync2Default2))
-	assert.NoError(t, testEngine.Sync2(new(TestSync2Default2)))
-	assert.NoError(t, testEngine.Sync2(new(TestSync2Default2)))
-	assert.NoError(t, testEngine.Sync2(new(TestSync2Default2)))
+	assert.NoError(t, testEngine.Sync(new(TestSync2Default2)))
+	assert.NoError(t, testEngine.Sync(new(TestSync2Default2)))
+	assert.NoError(t, testEngine.Sync(new(TestSync2Default2)))
 
 	assert.NoError(t, testEngine.Sync(new(TestSync2Default2)))
 	assert.NoError(t, testEngine.Sync(new(TestSync2Default2)))

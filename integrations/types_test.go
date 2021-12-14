@@ -28,7 +28,7 @@ func TestArrayField(t *testing.T) {
 		Name [20]byte `xorm:"char(80)"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(ArrayStruct)))
+	assert.NoError(t, testEngine.Sync(new(ArrayStruct)))
 
 	var as = ArrayStruct{
 		Name: [20]byte{
@@ -90,7 +90,7 @@ func TestGetBytes(t *testing.T) {
 		Data []byte `xorm:"VARBINARY(250)"`
 	}
 
-	err := testEngine.Sync2(new(Varbinary))
+	err := testEngine.Sync(new(Varbinary))
 	assert.NoError(t, err)
 
 	cnt, err := testEngine.Insert(&Varbinary{
@@ -193,7 +193,7 @@ func TestConversion(t *testing.T) {
 
 	c := new(ConvStruct)
 	assert.NoError(t, testEngine.DropTables(c))
-	assert.NoError(t, testEngine.Sync2(c))
+	assert.NoError(t, testEngine.Sync(c))
 
 	var s ConvString = "sssss"
 	c.Conv = "tttt"

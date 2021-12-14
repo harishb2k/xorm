@@ -73,7 +73,7 @@ steps:
     TEST_MYSQL_PASSWORD:
   commands:
   - make test-mysql
-  - TEST_QUOTE_POLICY=reserved make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql-tls
 
 volumes:
 - name: cache

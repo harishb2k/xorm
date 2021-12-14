@@ -80,7 +80,7 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 	}
 
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -90,7 +90,6 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 		colNames       []string
 		colMultiPlaces []string
 		args           []interface{}
-		cols           []*schemas.Column
 	)
 
 	for i := 0; i < size; i++ {
@@ -172,7 +171,6 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 
 			if i == 0 {
 				colNames = append(colNames, col.Name)
-				cols = append(cols, col)
 			}
 			colPlaces = append(colPlaces, "?")
 		}
@@ -203,7 +201,7 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 		return 0, err
 	}
 
-	session.cacheInsert(tableName)
+	_ = session.cacheInsert(tableName)
 
 	lenAfterClosures := len(session.afterClosures)
 	for i := 0; i < size; i++ {
@@ -257,7 +255,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 	if err := session.statement.SetRefBean(bean); err != nil {
 		return 0, err
 	}
-	if len(session.statement.TableName()) <= 0 {
+	if len(session.statement.TableName()) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -360,7 +358,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 
 		defer handleAfterInsertProcessorFunc(bean)
 
-		session.cacheInsert(tableName)
+		_ = session.cacheInsert(tableName)
 
 		if table.Version != "" && session.statement.CheckVersion {
 			verValue, err := table.VersionColumn().ValueOf(bean)
@@ -390,7 +388,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 
 	defer handleAfterInsertProcessorFunc(bean)
 
-	session.cacheInsert(tableName)
+	_ = session.cacheInsert(tableName)
 
 	if table.Version != "" && session.statement.CheckVersion {
 		verValue, err := table.VersionColumn().ValueOf(bean)
@@ -430,6 +428,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 // InsertOne insert only one struct into database as a record.
 // The in parameter bean must a struct or a point to struct. The return
 // parameter is inserted and error
+// Deprecated: Please use Insert directly
 func (session *Session) InsertOne(bean interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
@@ -537,7 +536,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	}
 
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -559,12 +558,12 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 }
 
 func (session *Session) insertMultipleMapInterface(maps []map[string]interface{}) (int64, error) {
-	if len(maps) <= 0 {
+	if len(maps) == 0 {
 		return 0, ErrNoElementsOnSlice
 	}
 
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -595,7 +594,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	}
 
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -618,12 +617,12 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 }
 
 func (session *Session) insertMultipleMapString(maps []map[string]string) (int64, error) {
-	if len(maps) <= 0 {
+	if len(maps) == 0 {
 		return 0, ErrNoElementsOnSlice
 	}
 
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -650,7 +649,7 @@ func (session *Session) insertMultipleMapString(maps []map[string]string) (int64
 
 func (session *Session) insertMap(columns []string, args []interface{}) (int64, error) {
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 
@@ -677,7 +676,7 @@ func (session *Session) insertMap(columns []string, args []interface{}) (int64, 
 
 func (session *Session) insertMultipleMap(columns []string, argss [][]interface{}) (int64, error) {
 	tableName := session.statement.TableName()
-	if len(tableName) <= 0 {
+	if len(tableName) == 0 {
 		return 0, ErrTableNotFound
 	}
 

@@ -23,7 +23,7 @@ func TestBefore_Get(t *testing.T) {
 		Val  string `xorm:"-"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(BeforeTable)))
+	assert.NoError(t, testEngine.Sync(new(BeforeTable)))
 
 	cnt, err := testEngine.Insert(&BeforeTable{
 		Name: "test",
@@ -50,7 +50,7 @@ func TestBefore_Find(t *testing.T) {
 		Val  string `xorm:"-"`
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(BeforeTable2)))
+	assert.NoError(t, testEngine.Sync(new(BeforeTable2)))
 
 	cnt, err := testEngine.Insert([]BeforeTable2{
 		{Name: "test1"},
@@ -104,7 +104,7 @@ func (p *ProcessorsStruct) BeforeDelete() {
 }
 
 func (p *ProcessorsStruct) BeforeSet(col string, cell xorm.Cell) {
-	p.BeforeSetFlag = p.BeforeSetFlag + 1
+	p.BeforeSetFlag++
 }
 
 func (p *ProcessorsStruct) AfterInsert() {
@@ -120,7 +120,7 @@ func (p *ProcessorsStruct) AfterDelete() {
 }
 
 func (p *ProcessorsStruct) AfterSet(col string, cell xorm.Cell) {
-	p.AfterSetFlag = p.AfterSetFlag + 1
+	p.AfterSetFlag++
 }
 
 func TestProcessors(t *testing.T) {

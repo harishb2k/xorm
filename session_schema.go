@@ -223,24 +223,6 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 	return total == 0, nil
 }
 
-// find if index is exist according cols
-func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
-	indexes, err := session.engine.dialect.GetIndexes(session.getQueryer(), session.ctx, tableName)
-	if err != nil {
-		return false, err
-	}
-
-	for _, index := range indexes {
-		if utils.SliceEq(index.Cols, cols) {
-			if unique {
-				return index.Type == schemas.UniqueType, nil
-			}
-			return index.Type == schemas.IndexType, nil
-		}
-	}
-	return false, nil
-}
-
 func (session *Session) addColumn(colName string) error {
 	col := session.statement.RefTable.GetColumn(colName)
 	sql := session.engine.dialect.AddColumnSQL(session.statement.TableName(), col)
@@ -263,7 +245,13 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 }
 
 // Sync2 synchronize structs to database tables
+// Depricated
 func (session *Session) Sync2(beans ...interface{}) error {
+	return session.Sync(beans...)
+}
+
+// Sync synchronize structs to database tables
+func (session *Session) Sync(beans ...interface{}) error {
 	engine := session.engine
 
 	if session.isAutoClose {
@@ -388,6 +376,8 @@ func (session *Session) Sync2(beans ...interface{}) error {
 						_, err = session.exec(engine.dialect.ModifyColumnSQL(tbNameWithSchema, col))
 					}
 				}
+			} else if col.Comment != oriCol.Comment {
+				_, err = session.exec(engine.dialect.ModifyColumnSQL(tbNameWithSchema, col))
 			}
 
 			if col.Default != oriCol.Default {

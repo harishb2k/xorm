@@ -99,7 +99,7 @@ func TestExistStructForJoin(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(Number), new(OrderList), new(Player)))
+	assert.NoError(t, testEngine.Sync(new(Number), new(OrderList), new(Player)))
 
 	var ply Player
 	cnt, err := testEngine.Insert(&ply)

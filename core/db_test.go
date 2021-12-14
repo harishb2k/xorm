@@ -96,7 +96,7 @@ func BenchmarkOriQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			//fmt.Println(Id, Name, Title, Age, Alias, NickName)
+			// fmt.Println(Id, Name, Title, Age, Alias, NickName)
 		}
 		rows.Close()
 	}
@@ -245,13 +245,13 @@ func BenchmarkSliceInterfaceQuery(b *testing.B) {
 				b.Error(err)
 			}
 			b.Log(slice)
-			switch slice[1].(type) {
+			switch st := slice[1].(type) {
 			case *string:
-				if *slice[1].(*string) != "xlw" {
+				if *st != "xlw" {
 					b.Error(errors.New("name should be xlw"))
 				}
 			case []byte:
-				if string(slice[1].([]byte)) != "xlw" {
+				if string(st) != "xlw" {
 					b.Error(errors.New("name should be xlw"))
 				}
 			}
@@ -399,14 +399,14 @@ func BenchmarkMapInterfaceQuery(b *testing.B) {
 			if err != nil {
 				b.Error(err)
 			}
-			switch m["name"].(type) {
+			switch t := m["name"].(type) {
 			case string:
-				if m["name"].(string) != "xlw" {
+				if t != "xlw" {
 					b.Log(m)
 					b.Error(errors.New("name should be xlw"))
 				}
 			case []byte:
-				if string(m["name"].([]byte)) != "xlw" {
+				if string(t) != "xlw" {
 					b.Log(m)
 					b.Error(errors.New("name should be xlw"))
 				}

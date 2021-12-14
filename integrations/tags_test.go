@@ -673,7 +673,7 @@ func TestCreatedUpdated(t *testing.T) {
 		Updated  time.Time `xorm:"updated"`
 	}
 
-	err := testEngine.Sync2(&CreatedUpdated{})
+	err := testEngine.Sync(&CreatedUpdated{})
 	assert.NoError(t, err)
 
 	c := &CreatedUpdated{Name: "test"}
@@ -728,7 +728,7 @@ type Lowercase struct {
 func TestLowerCase(t *testing.T) {
 	assert.NoError(t, PrepareEngine())
 
-	err := testEngine.Sync2(&Lowercase{})
+	err := testEngine.Sync(&Lowercase{})
 	assert.NoError(t, err)
 	_, err = testEngine.Where("`id` > 0").Delete(&Lowercase{})
 	assert.NoError(t, err)
@@ -827,7 +827,7 @@ func TestTagComment(t *testing.T) {
 	assert.True(t, cols[0].DefaultIsEmpty)
 	assert.EqualValues(t, "", cols[0].Default)
 
-	assert.NoError(t, testEngine.Sync2(new(TestComment1)))
+	assert.NoError(t, testEngine.Sync(new(TestComment1)))
 
 	tables, err := testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -851,7 +851,7 @@ func TestTagComment(t *testing.T) {
 	assert.True(t, cols[0].DefaultIsEmpty)
 	assert.EqualValues(t, "", cols[0].Default)
 
-	assert.NoError(t, testEngine.Sync2(new(TestComment2)))
+	assert.NoError(t, testEngine.Sync(new(TestComment2)))
 
 	tables, err = testEngine.DBMetas()
 	assert.NoError(t, err)
@@ -1202,7 +1202,7 @@ func TestTagTime(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, s.Created.UTC().Format("2006-01-02 15:04:05"),
-		strings.Replace(strings.Replace(tm, "T", " ", -1), "Z", "", -1))
+		strings.ReplaceAll(strings.ReplaceAll(tm, "T", " "), "Z", ""))
 }
 
 func TestTagAutoIncr(t *testing.T) {
@@ -1287,7 +1287,7 @@ func TestVersion1(t *testing.T) {
 	assert.EqualValues(t, newVer.Ver, 2)
 
 	newVer = new(VersionS)
-	has, err = testEngine.ID(ver.Id).Get(newVer)
+	_, err = testEngine.ID(ver.Id).Get(newVer)
 	assert.NoError(t, err)
 	assert.EqualValues(t, newVer.Ver, 2)
 }
@@ -1345,7 +1345,7 @@ func TestVersion3(t *testing.T) {
 	assert.EqualValues(t, newVer.Ver, 2)
 
 	newVer = new(VersionUintS)
-	has, err = testEngine.ID(ver.Id).Get(newVer)
+	_, err = testEngine.ID(ver.Id).Get(newVer)
 	assert.NoError(t, err)
 	assert.EqualValues(t, newVer.Ver, 2)
 }

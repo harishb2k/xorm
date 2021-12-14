@@ -17,8 +17,7 @@ import (
 func TableNameWithSchema(dialect Dialect, tableName string) string {
 	// Add schema name as prefix of table name.
 	// Only for postgres database.
-	if dialect.URI().Schema != "" &&
-		strings.Index(tableName, ".") == -1 {
+	if dialect.URI().Schema != "" && !strings.Contains(tableName, ".") {
 		return fmt.Sprintf("%s.%s", dialect.URI().Schema, tableName)
 	}
 	return tableName
@@ -27,20 +26,18 @@ func TableNameWithSchema(dialect Dialect, tableName string) string {
 // TableNameNoSchema returns table name with given tableName
 func TableNameNoSchema(dialect Dialect, mapper names.Mapper, tableName interface{}) string {
 	quote := dialect.Quoter().Quote
-	switch tableName.(type) {
+	switch tt := tableName.(type) {
 	case []string:
-		t := tableName.([]string)
-		if len(t) > 1 {
-			return fmt.Sprintf("%v AS %v", quote(t[0]), quote(t[1]))
-		} else if len(t) == 1 {
-			return quote(t[0])
+		if len(tt) > 1 {
+			return fmt.Sprintf("%v AS %v", quote(tt[0]), quote(tt[1]))
+		} else if len(tt) == 1 {
+			return quote(tt[0])
 		}
 	case []interface{}:
-		t := tableName.([]interface{})
-		l := len(t)
+		l := len(tt)
 		var table string
 		if l > 0 {
-			f := t[0]
+			f := tt[0]
 			switch f.(type) {
 			case string:
 				table = f.(string)
@@ -57,7 +54,7 @@ func TableNameNoSchema(dialect Dialect, mapper names.Mapper, tableName interface
 			}
 		}
 		if l > 1 {
-			return fmt.Sprintf("%v AS %v", quote(table), quote(fmt.Sprintf("%v", t[1])))
+			return fmt.Sprintf("%v AS %v", quote(table), quote(fmt.Sprintf("%v", tt[1])))
 		} else if l == 1 {
 			return quote(table)
 		}

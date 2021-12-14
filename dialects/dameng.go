@@ -670,9 +670,15 @@ func (db *dameng) CreateTableSQL(ctx context.Context, queryer core.Queryer, tabl
 
 	quoter := db.Quoter()
 	var b strings.Builder
-	b.WriteString("CREATE TABLE ")
-	quoter.QuoteTo(&b, tableName)
-	b.WriteString(" (")
+	if _, err := b.WriteString("CREATE TABLE "); err != nil {
+		return "", false, err
+	}
+	if err := quoter.QuoteTo(&b, tableName); err != nil {
+		return "", false, err
+	}
+	if _, err := b.WriteString(" ("); err != nil {
+		return "", false, err
+	}
 
 	pkList := table.PrimaryKeys
 
@@ -687,21 +693,35 @@ func (db *dameng) CreateTableSQL(ctx context.Context, queryer core.Queryer, tabl
 		}
 
 		s, _ := ColumnString(db, col, false)
-		b.WriteString(s)
+		if _, err := b.WriteString(s); err != nil {
+			return "", false, err
+		}
 		if i != len(table.ColumnsSeq())-1 {
-			b.WriteString(", ")
+			if _, err := b.WriteString(", "); err != nil {
+				return "", false, err
+			}
 		}
 	}
 
 	if len(pkList) > 0 {
 		if len(table.ColumnsSeq()) > 0 {
-			b.WriteString(", ")
+			if _, err := b.WriteString(", "); err != nil {
+				return "", false, err
+			}
 		}
-		b.WriteString(fmt.Sprintf("CONSTRAINT PK_%s PRIMARY KEY (", tableName))
-		quoter.JoinWrite(&b, pkList, ",")
-		b.WriteString(")")
+		if _, err := b.WriteString(fmt.Sprintf("CONSTRAINT PK_%s PRIMARY KEY (", tableName)); err != nil {
+			return "", false, err
+		}
+		if err := quoter.JoinWrite(&b, pkList, ","); err != nil {
+			return "", false, err
+		}
+		if _, err := b.WriteString(")"); err != nil {
+			return "", false, err
+		}
 	}
-	b.WriteString(")")
+	if _, err := b.WriteString(")"); err != nil {
+		return "", false, err
+	}
 
 	return b.String(), false, nil
 }
@@ -1163,7 +1183,7 @@ func (d *damengDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.Colu
 				case "TIMESTAMP":
 					ns := t.(*sql.NullString)
 					if !ns.Valid {
-						return nil
+						break
 					}
 					s := ns.String
 					fields := strings.Split(s, "+")

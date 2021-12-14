@@ -203,7 +203,7 @@ func (m *Migrate) migrationDidRun(mig *Migration) (bool, error) {
 func (m *Migrate) isFirstRun() bool {
 	row := m.db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", m.options.TableName))
 	var count int
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return count == 0
 }
 

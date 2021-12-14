@@ -20,7 +20,7 @@ func TestExecAndQuery(t *testing.T) {
 		Name string
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoQuery)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoQuery)))
 
 	res, err := testEngine.Exec("INSERT INTO "+testEngine.TableName("`userinfo_query`", true)+" (`uid`, `name`) VALUES (?, ?)", 1, "user")
 	assert.NoError(t, err)
@@ -46,7 +46,7 @@ func TestExecTime(t *testing.T) {
 		Created time.Time
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoExecTime)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoExecTime)))
 	now := time.Now()
 	res, err := testEngine.Exec("INSERT INTO "+testEngine.TableName("`userinfo_exec_time`", true)+" (`uid`, `name`, `created`) VALUES (?, ?, ?)", 1, "user", now)
 	assert.NoError(t, err)

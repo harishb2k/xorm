@@ -31,7 +31,7 @@ var (
 		{
 			ID: "201608301400",
 			Migrate: func(tx *xorm.Engine) error {
-				return tx.Sync2(&Person{})
+				return tx.Sync(&Person{})
 			},
 			Rollback: func(tx *xorm.Engine) error {
 				return tx.DropTables(&Person{})
@@ -40,7 +40,7 @@ var (
 		{
 			ID: "201608301430",
 			Migrate: func(tx *xorm.Engine) error {
-				return tx.Sync2(&Pet{})
+				return tx.Sync(&Pet{})
 			},
 			Rollback: func(tx *xorm.Engine) error {
 				return tx.DropTables(&Pet{})
@@ -103,10 +103,10 @@ func TestInitSchema(t *testing.T) {
 
 	m := New(db, DefaultOptions, migrations)
 	m.InitSchema(func(tx *xorm.Engine) error {
-		if err := tx.Sync2(&Person{}); err != nil {
+		if err := tx.Sync(&Person{}); err != nil {
 			return err
 		}
-		return tx.Sync2(&Pet{})
+		return tx.Sync(&Pet{})
 	})
 
 	err = m.Migrate()
@@ -142,6 +142,6 @@ func TestMissingID(t *testing.T) {
 
 func tableCount(db *xorm.Engine, tableName string) (count int) {
 	row := db.DB().QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName))
-	row.Scan(&count)
+	_ = row.Scan(&count)
 	return
 }

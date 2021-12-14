@@ -22,7 +22,7 @@ func TestDelete(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoDelete)))
 
 	session := testEngine.NewSession()
 	defer session.Close()
@@ -213,7 +213,7 @@ func TestUnscopeDelete(t *testing.T) {
 	cnt, err = testEngine.ID(1).Delete(&s)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
-	assert.EqualValues(t, nowUnix, s.DeletedAt.Unix())
+	assert.LessOrEqual(t, int(s.DeletedAt.Unix()-nowUnix), 1)
 
 	var s1 UnscopeDeleteStruct
 	has, err := testEngine.ID(1).Get(&s1)
@@ -225,7 +225,7 @@ func TestUnscopeDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.EqualValues(t, "test", s2.Name)
-	assert.EqualValues(t, nowUnix, s2.DeletedAt.Unix())
+	assert.LessOrEqual(t, int(s2.DeletedAt.Unix()-nowUnix), 1)
 
 	cnt, err = testEngine.ID(1).Unscoped().Delete(new(UnscopeDeleteStruct))
 	assert.NoError(t, err)
@@ -250,7 +250,7 @@ func TestDelete2(t *testing.T) {
 		IsMan bool
 	}
 
-	assert.NoError(t, testEngine.Sync2(new(UserinfoDelete2)))
+	assert.NoError(t, testEngine.Sync(new(UserinfoDelete2)))
 
 	user := UserinfoDelete2{}
 	cnt, err := testEngine.Insert(&user)

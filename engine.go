@@ -7,7 +7,6 @@ package xorm
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -468,7 +467,9 @@ func (engine *Engine) dumpTables(ctx context.Context, tables []*schemas.Table, w
 			DBName: uri.DBName,
 			Schema: uri.Schema,
 		}
-		dstDialect.Init(&destURI)
+		if err := dstDialect.Init(&destURI); err != nil {
+			return err
+		}
 	}
 	cacherMgr := caches.NewManager()
 	dstTableCache := tags.NewParser("xorm", dstDialect, engine.GetTableMapper(), engine.GetColumnMapper(), cacherMgr)
@@ -589,7 +590,7 @@ func (engine *Engine) dumpTables(ctx context.Context, tables []*schemas.Table, w
 							return err
 						}
 					} else if sess.engine.dialect.URI().DBType == schemas.DAMENG && stp.IsTime() && len(s.String) == 25 {
-						r := strings.Replace(s.String[:19], "T", " ", -1)
+						r := strings.ReplaceAll(s.String[:19], "T", " ")
 						if _, err = io.WriteString(w, "'"+r+"'"); err != nil {
 							return err
 						}
@@ -925,104 +926,13 @@ func (engine *Engine) UnMapType(t reflect.Type) {
 func (engine *Engine) Sync(beans ...interface{}) error {
 	session := engine.NewSession()
 	defer session.Close()
-
-	for _, bean := range beans {
-		v := utils.ReflectValue(bean)
-		tableNameNoSchema := dialects.FullTableName(engine.dialect, engine.GetTableMapper(), bean)
-		table, err := engine.tagParser.ParseWithCache(v)
-		if err != nil {
-			return err
-		}
-
-		isExist, err := session.Table(bean).isTableExist(tableNameNoSchema)
-		if err != nil {
-			return err
-		}
-		if !isExist {
-			err = session.createTable(bean)
-			if err != nil {
-				return err
-			}
-		}
-		/*isEmpty, err := engine.IsEmptyTable(bean)
-		  if err != nil {
-		      return err
-		  }*/
-		var isEmpty bool
-		if isEmpty {
-			err = session.dropTable(bean)
-			if err != nil {
-				return err
-			}
-			err = session.createTable(bean)
-			if err != nil {
-				return err
-			}
-		} else {
-			for _, col := range table.Columns() {
-				isExist, err := engine.dialect.IsColumnExist(engine.db, session.ctx, tableNameNoSchema, col.Name)
-				if err != nil {
-					return err
-				}
-				if !isExist {
-					if err := session.statement.SetRefBean(bean); err != nil {
-						return err
-					}
-					err = session.addColumn(col.Name)
-					if err != nil {
-						return err
-					}
-				}
-			}
-
-			for name, index := range table.Indexes {
-				if err := session.statement.SetRefBean(bean); err != nil {
-					return err
-				}
-				if index.Type == schemas.UniqueType {
-					isExist, err := session.isIndexExist2(tableNameNoSchema, index.Cols, true)
-					if err != nil {
-						return err
-					}
-					if !isExist {
-						if err := session.statement.SetRefBean(bean); err != nil {
-							return err
-						}
-
-						err = session.addUnique(tableNameNoSchema, name)
-						if err != nil {
-							return err
-						}
-					}
-				} else if index.Type == schemas.IndexType {
-					isExist, err := session.isIndexExist2(tableNameNoSchema, index.Cols, false)
-					if err != nil {
-						return err
-					}
-					if !isExist {
-						if err := session.statement.SetRefBean(bean); err != nil {
-							return err
-						}
-
-						err = session.addIndex(tableNameNoSchema, name)
-						if err != nil {
-							return err
-						}
-					}
-				} else {
-					return errors.New("unknow index type")
-				}
-			}
-		}
-	}
-	return nil
+	return session.Sync(beans...)
 }
 
 // Sync2 synchronize structs to database tables
+// Depricated
 func (engine *Engine) Sync2(beans ...interface{}) error {
-	s := engine.NewSession()
-	defer s.Close()
-	return s.Sync2(beans...)
+	return engine.Sync(beans...)
 }
 
 // CreateTables create tabls according bean
@@ -1038,7 +948,7 @@ func (engine *Engine) CreateTables(beans ...interface{}) error {
 	for _, bean := range beans {
 		err = session.createTable(bean)
 		if err != nil {
-			session.Rollback()
+			_ = session.Rollback()
 			return err
 		}
 	}
@@ -1058,7 +968,7 @@ func (engine *Engine) DropTables(beans ...interface{}) error {
 	for _, bean := range beans {
 		err = session.dropTable(bean)
 		if err != nil {
-			session.Rollback()
+			_ = session.Rollback()
 			return err
 		}
 	}
@@ -1135,10 +1045,10 @@ func (engine *Engine) Delete(beans ...interface{}) (int64, error) {
 
 // Get retrieve one record from table, bean's non-empty fields
 // are conditions
-func (engine *Engine) Get(bean interface{}) (bool, error) {
+func (engine *Engine) Get(beans ...interface{}) (bool, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Get(bean)
+	return session.Get(beans...)
 }
 
 // Exist returns true if the record exist otherwise return false

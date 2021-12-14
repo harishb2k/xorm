@@ -21,6 +21,7 @@ func SliceEq(left, right []string) bool {
 	return true
 }
 
+// IndexSlice search c in slice s and return the index, return -1 if s don't contain c
 func IndexSlice(s []string, c string) int {
 	for i, ss := range s {
 		if c == ss {
