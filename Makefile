@@ -99,7 +99,6 @@ help:
 	@echo " - clean             delete integration files and build files but not css and js files"
 	@echo " - fmt               format the code"
 	@echo " - lint            	run code linter"
-	@echo " - misspell          check if a word is written wrong"
 	@echo " - test       		run default unit test"
 	@echo " - test-cockroach    run integration tests for cockroach"
 	@echo " - test-mysql        run integration tests for mysql"
@@ -130,27 +129,6 @@ golangci-lint-check:
 		export BINARY="golangci-lint"; \
 		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
 	fi
-
-.PHONY: revive
-revive:
-	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/mgechev/revive; \
-	fi
-	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
-
-.PHONY: misspell
-misspell:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
-	misspell -w -i unknwon $(GOFILES)
-
-.PHONY: misspell-check
-misspell-check:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
-	misspell -error -i unknwon,destory $(GOFILES)
 
 .PHONY: test
 test: go-check
