@@ -334,7 +334,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 				fmt.Fprint(&buf, " LIMIT ", *pLimitN)
 			}
 		} else if dialect.URI().DBType == schemas.ORACLE {
-			if statement.Start != 0 && pLimitN != nil {
+			if pLimitN != nil {
 				oldString := buf.String()
 				buf.Reset()
 				rawColStr := columnStr

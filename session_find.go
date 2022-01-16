@@ -254,9 +254,9 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 
 		switch elemType.Kind() {
 		case reflect.Slice:
-			err = rows.ScanSlice(bean)
+			err = session.getSlice(rows, types, fields, bean)
 		case reflect.Map:
-			err = rows.ScanMap(bean)
+			err = session.getMap(rows, types, fields, bean)
 		default:
 			err = rows.Scan(bean)
 		}

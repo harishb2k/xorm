@@ -143,6 +143,7 @@ func TestDumpTables(t *testing.T) {
 
 	type TestDumpTableStruct struct {
 		Id      int64
+		Data    []byte `xorm:"BLOB"`
 		Name    string
 		IsMan   bool
 		Created time.Time `xorm:"created"`
@@ -152,10 +153,14 @@ func TestDumpTables(t *testing.T) {
 
 	_, err := testEngine.Insert([]TestDumpTableStruct{
 		{Name: "1", IsMan: true},
-		{Name: "2\n"},
-		{Name: "3;"},
-		{Name: "4\n;\n''"},
-		{Name: "5'\n"},
+		{Name: "2\n", Data: []byte{'\000', '\001', '\002'}},
+		{Name: "3;", Data: []byte("0x000102")},
+		{Name: "4\n;\n''", Data: []byte("Help")},
+		{Name: "5'\n", Data: []byte("0x48656c70")},
+		{Name: "6\\n'\n", Data: []byte("48656c70")},
+		{Name: "7\\n'\r\n", Data: []byte("7\\n'\r\n")},
+		{Name: "x0809ee"},
+		{Name: "090a10"},
 	})
 	assert.NoError(t, err)
 
