@@ -224,6 +224,28 @@ func TestInsertDefault2(t *testing.T) {
 	assert.EqualValues(t, *di, di2)
 }
 
+func TestInsertDefault3(t *testing.T) {
+	type DefaultInsert3 struct {
+		Id      int64     `xorm:"not null pk autoincr UNSIGNED INT(11)"`
+		Name    string    `xorm:"not null default '' VARCHAR(255)"`
+		Ip      string    `xorm:"not null default '' VARCHAR(255)"`
+		Created time.Time `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP"`
+		Updated time.Time `xorm:"not null default '0000-00-00 00:00:00' TIMESTAMP"`
+	}
+
+	di := new(DefaultInsert3)
+	err := testEngine.Sync(di)
+	assert.NoError(t, err)
+
+	var di2 = DefaultInsert3{Name: "test"}
+	_, err = testEngine.Insert(&di2)
+	assert.NoError(t, err)
+
+	has, err := testEngine.Desc("id").Get(di)
+	assert.NoError(t, err)
+	assert.True(t, has)
+}
+
 type CreatedInsert struct {
 	Id      int64
 	Created time.Time `xorm:"created"`
