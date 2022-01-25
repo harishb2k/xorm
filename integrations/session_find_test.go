@@ -711,6 +711,36 @@ func TestFindAndCountWithGroupBy(t *testing.T) {
 	assert.EqualValues(t, 2, len(results))
 }
 
+func TestFindAndCountWithDistinct(t *testing.T) {
+	assert.NoError(t, PrepareEngine())
+
+	type FindAndCountWithDistinct struct {
+		Id   int64
+		Age  int `xorm:"index"`
+		Name string
+	}
+
+	assert.NoError(t, testEngine.Sync(new(FindAndCountWithDistinct)))
+
+	_, err := testEngine.Insert([]FindAndCountWithDistinct{
+		{
+			Name: "test1",
+			Age:  10,
+		},
+		{
+			Name: "test2",
+			Age:  20,
+		},
+	})
+	assert.NoError(t, err)
+
+	var results []FindAndCountWithDistinct
+	cnt, err := testEngine.Distinct("`age`").FindAndCount(&results)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, cnt)
+	assert.EqualValues(t, 2, len(results))
+}
+
 type FindMapDevice struct {
 	Deviceid string `xorm:"pk"`
 	Status   int

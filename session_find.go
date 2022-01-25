@@ -57,7 +57,7 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 	if session.statement.SelectStr != "" {
 		session.statement.SelectStr = ""
 	}
-	if len(session.statement.ColumnMap) > 0 {
+	if len(session.statement.ColumnMap) > 0 && !session.statement.IsDistinct {
 		session.statement.ColumnMap = []string{}
 	}
 	if session.statement.OrderStr != "" {
