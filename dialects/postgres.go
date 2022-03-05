@@ -1300,6 +1300,19 @@ func (db *postgres) GetIndexes(queryer core.Queryer, ctx context.Context, tableN
 			indexType = schemas.IndexType
 		}
 		colNames = getIndexColName(indexdef)
+
+		isSkip := false
+		//Oid It's a special index. You can't put it in
+		for _, element := range colNames {
+			if "oid" == element {
+				isSkip = true
+				break
+			}
+		}
+		if isSkip {
+			continue
+		}
+
 		var isRegular bool
 		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
 			newIdxName := indexName[5+len(tableName):]
